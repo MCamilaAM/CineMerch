@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model WaitlistLead {
+  id              String   @id @default(cuid())
+  fullName        String
+  email           String   @unique
+  phone           String
+  couponCode      String   @unique
+  discountPercent Int      @default(10)
+  isRedeemed      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+model Product {
+  id                  String   @id @default(cuid())
+  title               String
+  originalTitle       String?
+  tmdbId              Int?
+  overview            String
+  price               Int      // In COP (pesos colombianos)
+  format              String   // "4K UHD", "Steelbook", "Blu-ray", "Box Set", "Merch", "Kit"
+  category            String   // "Sci-Fi", "Drama", "Acción", "Terror", "Kits", "Accesorios"
+  director            String
+  cast                String?
+  studio              String?
+  year                Int
+  posterUrl           String
+  backdropUrl         String?
+  stock               Int      @default(15)
+  isPreorder          Boolean  @default(false)
+  preorderReleaseDate DateTime?
+  isBundle            Boolean  @default(false)
+  bundleIncludes      String?  // Description of bundle items
+  isBestSeller        Boolean  @default(false)
+  audioSpecs          String?  // e.g., "Dolby Atmos, Dolby TrueHD 7.1"
+  subtitleSpecs       String?  // e.g., "Español Latino, Inglés SDH, Francés"
+  regionCode          String?  // "Región Libre (4K)", "Región A (Blu-ray)"
+  tmdbRating          Float?   @default(8.5)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  reviews             Review[]
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  city            String
+  department      String   @default("Bolívar")
+  address         String
+  deliveryMethod  String   // "ENVIO_NACIONAL" | "CONTRAENTREGA_LOCAL"
+  paymentMethod   String   // "WOMPI_CARD" | "WOMPI_NEQUI" | "WOMPI_BANCOLOMBIA" | "WOMPI_BRE_B" | "WOMPI_PSE" | "CONTRAENTREGA"
+  paymentStatus   String   @default("APPROVED") // APPROVED, PENDING, DECLINED
+  subtotal        Int
+  discount        Int      @default(0)
+  shippingCost    Int      @default(0)
+  total           Int
+  pointsEarned    Int      @default(0)
+  pointsRedeemed  Int      @default(0)
+  carrier         String?  // "Coordinadora", "Inter Rapidísimo", "Envía", "Mensajería Local Cartagena"
+  trackingNumber  String?
+  status          String   @default("PAGADO") // PENDIENTE, PAGADO, ENVIADO, ENTREGADO
+  itemsJson       String   // Array of { productId, title, price, quantity, format, posterUrl }
+  createdAt       DateTime @default(now())
+}
+
+model Review {
+  id               String   @id @default(cuid())
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  author           String
+  rating           Int      @default(5)
+  comment          String
+  collectorBadge   String?  // "Coleccionista 4K", "Director VIP", "Comprador Verificado"
+  createdAt        DateTime @default(now())
+}
