@@ -39,7 +39,7 @@ export default function CategoryBanners() {
       icon: Clapperboard,
       link: "/catalogo?format=Merch",
       bgGradient: "from-cine-950 to-cine-900",
-      imageUrl: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=600&auto=format&fit=crop&q=80",
+      imageUrl: "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=600&auto=format&fit=crop&q=80",
     },
   ];
 

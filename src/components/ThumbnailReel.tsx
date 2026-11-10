@@ -45,13 +45,13 @@ export default function ThumbnailReel() {
     {
       title: "Protectores PET",
       subtitle: "Pack 10 Unidades",
-      img: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&auto=format&fit=crop&q=80",
+      img: "https://upload.wikimedia.org/wikipedia/commons/d/d4/HD-DVD_and_Blu-Ray_cases_%28crop%29.jpg",
       href: "/catalogo?format=Merch",
     },
     {
       title: "Claqueta de Cine",
       subtitle: "Madera y Acrílico",
-      img: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=600&auto=format&fit=crop&q=80",
+      img: "https://images.unsplash.com/photo-1637248578458-934f03db3ea2?w=600&auto=format&fit=crop&q=80",
       href: "/catalogo?format=Merch",
     },
   ];

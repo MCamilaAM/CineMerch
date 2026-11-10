@@ -50,7 +50,7 @@ export default function CartDrawer() {
       price: 28000,
       format: "Merch",
       category: "Accesorios",
-      posterUrl: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=500&auto=format&fit=crop&q=80",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d4/HD-DVD_and_Blu-Ray_cases_%28crop%29.jpg",
     },
     {
       id: "prod-claqueta-profesional",
@@ -58,7 +58,7 @@ export default function CartDrawer() {
       price: 49000,
       format: "Merch",
       category: "Accesorios",
-      posterUrl: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=500&auto=format&fit=crop&q=80",
+      posterUrl: "https://images.unsplash.com/photo-1637248578458-934f03db3ea2?w=500&auto=format&fit=crop&q=80",
     },
   ];
 

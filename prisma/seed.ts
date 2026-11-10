@@ -1,9 +1,43 @@
+import fs from "node:fs";
+import path from "node:path";
 import { PrismaClient } from "@prisma/client";
+import { fetchTMDBMovieDetails } from "../src/lib/tmdb";
+
+function loadEnvFromDisk() {
+  const envPath = path.resolve(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) return;
+
+  const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eqIdx = line.indexOf("=");
+    if (eqIdx <= 0) continue;
+    const key = line.slice(0, eqIdx).trim();
+    let val = line.slice(eqIdx + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    if (process.env[key] === undefined || process.env[key] === "") {
+      process.env[key] = val;
+    }
+  }
+}
+
+loadEnvFromDisk();
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("Seeding CineMerch database with verified high-definition cinema artwork...");
+  if (process.env.TMDB_API_KEY?.trim()) {
+    console.log("TMDB_API_KEY detected: resolving movie posters and backdrops dynamically from live TMDB API...");
+  } else {
+    console.log("TMDB_API_KEY not configured: resolving movie posters via curated TMDB library (src/lib/tmdb.ts)...");
+  }
 
   // Clean existing products and reviews
   await prisma.review.deleteMany({});
@@ -71,8 +105,8 @@ async function main() {
       cast: "Jack Nicholson, Shelley Duvall, Danny Lloyd, Scatman Crothers",
       studio: "Warner Bros. Pictures",
       year: 1980,
-      posterUrl: "https://image.tmdb.org/t/p/w780/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg",
-      backdropUrl: "https://image.tmdb.org/t/p/w1280/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg",
+      posterUrl: "https://image.tmdb.org/t/p/w780/b6ko0IKC8MdYBBPkkA1aBPLe2yz.jpg",
+      backdropUrl: "https://image.tmdb.org/t/p/w1280/b6ko0IKC8MdYBBPkkA1aBPLe2yz.jpg",
       stock: 10,
       isPreorder: false,
       isBestSeller: true,
@@ -237,8 +271,8 @@ async function main() {
       cast: "Harrison Ford, Rutger Hauer, Sean Young, Edward James Olmos",
       studio: "Warner Bros. Pictures",
       year: 1982,
-      posterUrl: "https://image.tmdb.org/t/p/w780/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg",
-      backdropUrl: "https://image.tmdb.org/t/p/w1280/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg",
+      posterUrl: "https://image.tmdb.org/t/p/w780/63N9uy8nd9j7Eog2axPQ8lbr3Wj.jpg",
+      backdropUrl: "https://image.tmdb.org/t/p/w1280/63N9uy8nd9j7Eog2axPQ8lbr3Wj.jpg",
       stock: 14,
       isPreorder: false,
       isBestSeller: true,
@@ -283,8 +317,8 @@ async function main() {
       cast: "Uma Thurman, Lucy Liu, Vivica A. Fox, David Carradine",
       studio: "Miramax Films",
       year: 2003,
-      posterUrl: "https://image.tmdb.org/t/p/w780/vQWk5YBFWF4bZaofAbv0tShwBvQ.jpg",
-      backdropUrl: "https://image.tmdb.org/t/p/w1280/vQWk5YBFWF4bZaofAbv0tShwBvQ.jpg",
+      posterUrl: "https://image.tmdb.org/t/p/w780/v7TaX8kXMXs5yFFGR41guUDNcnB.jpg",
+      backdropUrl: "https://image.tmdb.org/t/p/w1280/v7TaX8kXMXs5yFFGR41guUDNcnB.jpg",
       stock: 16,
       isPreorder: false,
       isBestSeller: true,
@@ -303,7 +337,7 @@ async function main() {
       category: "Accesorios",
       director: "CineMerch Essentials",
       year: 2026,
-      posterUrl: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=600&auto=format&fit=crop&q=80",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d4/HD-DVD_and_Blu-Ray_cases_%28crop%29.jpg",
       stock: 40,
       isPreorder: false,
       isBestSeller: true,
@@ -320,7 +354,7 @@ async function main() {
       category: "Accesorios",
       director: "CineMerch Studio",
       year: 2026,
-      posterUrl: "https://images.unsplash.com/photo-1585647347483-22b66260dfff?w=600&auto=format&fit=crop&q=80",
+      posterUrl: "https://images.unsplash.com/photo-1637248578458-934f03db3ea2?w=600&auto=format&fit=crop&q=80",
       stock: 22,
       isPreorder: false,
       isBestSeller: true,
@@ -337,7 +371,7 @@ async function main() {
       category: "Accesorios",
       director: "Quentin Tarantino Art",
       year: 2026,
-      posterUrl: "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=600&auto=format&fit=crop&q=80",
+      posterUrl: "https://image.tmdb.org/t/p/w780/suaEOtk1N1sgg2MTM7oZd2cfVp3.jpg",
       stock: 14,
       isPreorder: false,
       isBestSeller: false,
@@ -346,11 +380,41 @@ async function main() {
     }
   ];
 
+  let apiResolvedCount = 0;
+  let curatedResolvedCount = 0;
+
   for (const prod of products) {
+    let posterUrl = prod.posterUrl;
+    let backdropUrl = "backdropUrl" in prod ? prod.backdropUrl : undefined;
+    let tmdbRating = prod.tmdbRating;
+
+    if ("tmdbId" in prod && typeof prod.tmdbId === "number") {
+      const tmdbData = await fetchTMDBMovieDetails(prod.tmdbId);
+      if (tmdbData && tmdbData.source !== "synthetic") {
+        if (tmdbData.posterUrl) posterUrl = tmdbData.posterUrl;
+        if (tmdbData.backdropUrl) backdropUrl = tmdbData.backdropUrl;
+        if (tmdbData.source === "api") {
+          apiResolvedCount++;
+          if (tmdbData.tmdbRating > 0) tmdbRating = tmdbData.tmdbRating;
+        } else if (tmdbData.source === "curated") {
+          curatedResolvedCount++;
+        }
+      }
+    }
+
     await prisma.product.create({
-      data: prod,
+      data: {
+        ...prod,
+        posterUrl,
+        ...(backdropUrl !== undefined ? { backdropUrl } : {}),
+        tmdbRating,
+      },
     });
   }
+
+  console.log(
+    `TMDB poster resolution summary: ${apiResolvedCount} live API, ${curatedResolvedCount} curated fallback.`
+  );
 
   // Create initial reviews
   await prisma.review.createMany({

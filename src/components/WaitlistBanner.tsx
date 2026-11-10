@@ -82,23 +82,23 @@ export default function WaitlistBanner() {
   };
 
   return (
-    <section className="py-16 px-4 sm:px-8 bg-parchment-50 relative overflow-hidden">
+    <section className="py-16 px-4 sm:px-8 bg-parchment-50 relative z-10 overflow-hidden">
       <div className="max-w-6xl mx-auto relative">
         {/* Deep Red Card matching the bottom banner of the reference image */}
         <div className="bg-gradient-to-r from-cine-950 via-cine-900 to-cine-950 rounded-4xl p-8 sm:p-14 text-white relative overflow-hidden shadow-2xl border border-cine-800">
           {/* Cinema Decorative Objects flanking the banner (matching pretzels from photo) */}
-          <div className="absolute -bottom-10 -left-12 sm:bottom-2 sm:-left-6 opacity-85 pointer-events-none z-0 transform hover:scale-105 transition-transform duration-700">
+          <div className="hidden lg:block absolute bottom-2 -left-6 opacity-85 pointer-events-none z-0 transform hover:scale-105 transition-transform duration-700">
             <FilmReelDecoration size={230} rotation={-15} />
           </div>
 
-          <div className="absolute -top-8 -right-10 sm:top-2 sm:right-2 opacity-80 pointer-events-none z-0 transform rotate-12">
+          <div className="hidden md:block absolute -top-6 -right-8 md:top-2 md:right-2 opacity-80 pointer-events-none z-0 transform rotate-12">
             <GoldenTicketDecoration size={150} rotation={22} />
           </div>
 
           {/* Subtle background glow */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-cine-700/30 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div className="relative z-10 max-w-2xl mx-auto sm:mx-0 sm:ml-36 md:ml-44">
+          <div className="relative z-10 max-w-2xl mx-auto lg:mx-0 lg:ml-44">
             {/* Spot Counter Pill */}
             <div className="inline-flex items-center gap-2 bg-cine-800/80 border border-amber-400/50 px-3.5 py-1.5 rounded-full text-xs text-amber-300 font-bold mb-4 shadow">
               <span className="relative flex h-2 w-2">
