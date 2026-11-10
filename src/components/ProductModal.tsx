@@ -59,7 +59,7 @@ export default function ProductModal({ product, onClose }: ProductModalProps) {
             <CineImage
               src={product.posterUrl}
               alt={product.title}
-              className="w-full h-auto"
+              className="w-full aspect-[3/4]"
               fallbackTitle={product.title}
             />
             {product.isPreorder && (

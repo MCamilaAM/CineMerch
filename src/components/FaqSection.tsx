@@ -30,7 +30,7 @@ export default function FaqSection() {
   ];
 
   return (
-    <section className="py-16 px-4 sm:px-8 bg-parchment-50 border-t border-parchment-200">
+    <section className="relative z-10 py-16 px-4 sm:px-8 bg-parchment-50 border-t border-parchment-200">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-cine-700 bg-cine-100 px-3 py-1 rounded-full mb-2">

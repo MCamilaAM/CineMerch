@@ -7,7 +7,7 @@ import CineImage from "@/components/CineImage";
 
 export default function AboutSection() {
   return (
-    <section className="py-16 px-4 sm:px-8 bg-parchment-50 border-t border-parchment-200">
+    <section className="relative z-10 py-16 px-4 sm:px-8 bg-parchment-50 border-t border-parchment-200">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
         {/* Left Column: Story & Philosophy - Matching "Ozzie & the team" layout */}
         <div className="lg:col-span-7 space-y-5">
@@ -60,17 +60,17 @@ export default function AboutSection() {
         </div>
 
         {/* Right Column: Visual Frame */}
-        <div className="lg:col-span-5 relative">
+        <div className="lg:col-span-5 relative sm:pb-6">
           <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-cine-950">
             <CineImage
               src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&auto=format&fit=crop&q=80"
               alt="CineMerch Sala y Colección de Cine"
-              className="w-full h-[380px] hover:scale-105 transition-transform duration-700"
+              className="w-full h-[380px] sm:h-[400px] hover:scale-105 transition-transform duration-700"
               fallbackTitle="Sala CineMerch Cartagena"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-cine-950 via-cine-950/20 to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-cine-950 via-cine-950/35 to-transparent pointer-events-none"></div>
 
-            <div className="absolute bottom-5 left-5 right-5 text-white z-10">
+            <div className="absolute bottom-5 sm:bottom-20 left-5 right-5 text-white z-10">
               <span className="text-[10px] tracking-widest uppercase text-amber-300 font-bold">
                 Cartagena de Indias, D.T. y C.
               </span>
@@ -81,8 +81,8 @@ export default function AboutSection() {
           </div>
 
           {/* Floating badge */}
-          <div className="absolute -bottom-4 -left-4 bg-amber-400 text-cine-950 p-4 rounded-2xl shadow-xl flex items-center gap-3 border-2 border-white">
-            <Film className="w-6 h-6 text-cine-900" />
+          <div className="relative sm:absolute sm:-bottom-2 sm:-left-4 z-20 mt-3 sm:mt-0 w-fit bg-amber-400 text-cine-950 p-3.5 sm:p-4 rounded-2xl shadow-xl flex items-center gap-3 border-2 border-white">
+            <Film className="w-6 h-6 text-cine-900 shrink-0" />
             <div>
               <p className="text-xs font-black uppercase tracking-tight">Curaduría 100% Cinéfila</p>
               <p className="text-[11px] font-medium text-cine-900/80">Por y para coleccionistas</p>

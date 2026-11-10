@@ -27,13 +27,13 @@ export default function CuratedProcess() {
   ];
 
   return (
-    <section className="py-20 px-4 sm:px-8 bg-parchment-100 border-t border-parchment-200 relative overflow-hidden">
+    <section className="py-20 px-4 sm:px-8 bg-parchment-100 border-t border-parchment-200 relative z-10 overflow-hidden">
       {/* Decorative Film Reels flanking the section header, matching the pretzels in the reference photo! */}
-      <div className="absolute -top-12 -left-12 sm:left-4 md:left-8 opacity-80 pointer-events-none z-0">
+      <div className="absolute -top-12 -left-20 sm:-left-12 lg:left-4 opacity-30 lg:opacity-80 pointer-events-none z-0">
         <FilmReelDecoration size={200} rotation={-20} />
       </div>
 
-      <div className="absolute -top-12 -right-12 sm:right-4 md:right-8 opacity-80 pointer-events-none z-0">
+      <div className="absolute -top-12 -right-20 sm:-right-12 lg:right-4 opacity-30 lg:opacity-80 pointer-events-none z-0">
         <FilmReelDecoration size={200} rotation={35} />
       </div>
 

@@ -59,22 +59,22 @@ export default function KitsPage() {
                 {/* Poster & Highlights */}
                 <div
                   onClick={() => setSelectedProduct(kit)}
-                  className="relative aspect-video rounded-3xl overflow-hidden bg-cine-950 mb-5 cursor-pointer group"
+                  className="relative min-h-[230px] sm:aspect-video rounded-3xl overflow-hidden bg-cine-950 mb-5 cursor-pointer group flex flex-col justify-between p-4 gap-6"
                 >
                   <CineImage
                     src={kit.posterUrl}
                     alt={kit.title}
-                    className="w-full h-full group-hover:scale-105 transition-transform duration-700"
+                    className="absolute inset-0 w-full h-full group-hover:scale-105 transition-transform duration-700"
                     fallbackTitle={kit.title}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10 pointer-events-none"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent z-10 pointer-events-none"></div>
 
-                  <span className="absolute top-3 left-3 bg-amber-400 text-cine-950 font-black text-xs uppercase px-3 py-1 rounded-full shadow flex items-center gap-1.5 z-20">
+                  <span className="relative self-start bg-amber-400 text-cine-950 font-black text-xs uppercase px-3 py-1 rounded-full shadow flex items-center gap-1.5 z-20">
                     <Percent className="w-3.5 h-3.5" />
                     Ahorro del 11%
                   </span>
 
-                  <div className="absolute bottom-3 left-4 right-4 text-white z-20">
+                  <div className="relative text-white z-20">
                     <span className="text-[10px] uppercase tracking-wider text-amber-300 font-bold">
                       {kit.director}
                     </span>

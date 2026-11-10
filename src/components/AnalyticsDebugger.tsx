@@ -36,7 +36,7 @@ export default function AnalyticsDebugger() {
   }, []);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 font-sans text-xs">
+    <div className="fixed bottom-4 right-4 z-30 font-sans text-xs">
       {/* Trigger pill */}
       <div className="flex items-center space-x-2">
         <button
