@@ -1,17 +1,18 @@
+import { hasAdminAccess } from "@/lib/payment-http";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const totalLeads = await prisma.waitlistLead.count();
     const targetCapacity = 100;
     const remainingSpots = Math.max(0, targetCapacity - totalLeads);
 
-    const leads = await prisma.waitlistLead.findMany({
+    const leads = hasAdminAccess(request) ? await prisma.waitlistLead.findMany({
       orderBy: { createdAt: "desc" },
-    });
+    }) : [];
 
     return NextResponse.json({
       success: true,
@@ -19,7 +20,7 @@ export async function GET() {
       targetCapacity,
       remainingSpots,
       leads,
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Error fetching waitlist:", error);
     return NextResponse.json(

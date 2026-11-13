@@ -83,7 +83,7 @@ export default function Footer() {
               </li>
               <li>
                 <span className="text-zinc-600">
-                  Contraentrega en Cartagena y Bolívar
+                  Contraentrega en Cartagena, Bolívar
                 </span>
               </li>
               <li>
@@ -137,7 +137,7 @@ export default function Footer() {
           <p>© 2026 CineMerch E-Commerce. Proyecto Universidad de Cartagena.</p>
 
           <div className="flex flex-wrap items-center justify-center gap-2 font-mono text-[10px] text-zinc-600">
-            <span className="bg-white px-2.5 py-1 rounded border border-parchment-300 font-bold text-cine-900 shadow-sm">WOMPI</span>
+            <span className="bg-white px-2.5 py-1 rounded border border-parchment-300 font-bold text-cine-900 shadow-sm">WOMPI · SIMULACIÓN</span>
             <span className="bg-white px-2.5 py-1 rounded border border-parchment-300 font-bold text-fuchsia-800 shadow-sm">NEQUI</span>
             <span className="bg-white px-2.5 py-1 rounded border border-parchment-300 font-bold text-yellow-800 shadow-sm">BANCOLOMBIA</span>
             <span className="bg-white px-2.5 py-1 rounded border border-parchment-300 font-bold text-emerald-800 shadow-sm">BRE-B</span>

@@ -1,5 +1,6 @@
 "use client";
 
+import { publicCoupons } from "@/lib/checkout-options";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { trackAddToCart, trackRemoveFromCart } from "@/lib/analytics";
@@ -137,8 +138,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const discountAmount = Math.round(subtotal * (discountPercent / 100));
 
   // Max points redemption: 1 point = $10 COP, max up to 30% of subtotal
-  const maxRedeemableDiscount = Math.round(subtotal * 0.3);
-  const redeemedDiscountAmount = Math.min(pointsToRedeem * 10, maxRedeemableDiscount);
+  const redeemedDiscountAmount = 0;
 
   const finalTotal = Math.max(0, subtotal - discountAmount - redeemedDiscountAmount);
 
@@ -220,11 +220,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const applyCoupon = (code: string): boolean => {
     const cleanCode = code.trim().toUpperCase();
-    if (cleanCode.startsWith("CINEMERCH10") || cleanCode === "CINE10" || cleanCode === "PREVENTA10") {
+    if (publicCoupons.includes(cleanCode) || /^CINEMERCH10-\d{1,12}$/.test(cleanCode)) {
       setAppliedCoupon(cleanCode);
       setDiscountPercent(10);
       localStorage.setItem("cinemerch_coupon", cleanCode);
-      showToast("¡Cupón Aplicado! 🎟️", "10% de descuento de bienvenida descontado con éxito.");
+      showToast("¡Cupón Aplicado! 🎟️", "Descuento estimado del 10%. El cupón se valida al registrar el pedido.");
       return true;
     }
     showToast("Cupón no válido", "Verifica el código ingresado o regístrate en la preventa.", "warning");

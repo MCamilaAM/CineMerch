@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "db:setup": "node scripts/setup-db.mjs",
+    "db:seed": "node scripts/run-local.mjs npx tsx prisma/seed.ts",
+    "test:payments": "node scripts/test-payments.mjs",
+    "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

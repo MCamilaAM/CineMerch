@@ -35,3 +35,6 @@ yarn-error.log*
 # SQLite database
 prisma/*.db
 prisma/*.db-journal
+/work/
+prisma/*.db-*
+*.tsbuildinfo

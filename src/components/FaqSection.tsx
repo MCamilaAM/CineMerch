@@ -13,7 +13,7 @@ export default function FaqSection() {
     },
     {
       q: "¿Qué medios de pago admiten? ¿Puedo pagar contraentrega en Cartagena?",
-      a: "Procesamos pagos en línea mediante la pasarela segura de Wompi Bancolombia (con soporte para Nequi mediante notificación push o código QR, Botón Bancolombia, llaves Bre-B / Transfiya, tarjetas Visa, Mastercard, American Express y PSE para otros bancos). Si te encuentras en Cartagena o el departamento de Bolívar, puedes seleccionar 'Pago Contraentrega Local' y abonar en efectivo o transferencia al recibir tu paquete.",
+      a: "Wompi es una simulación académica sin conexión bancaria ni cobros. Puedes probar tarjeta, Nequi, PSE, Bancolombia y Bre-B. La opción de contraentrega solo está disponible en Cartagena, Bolívar.",
     },
     {
       q: "¿Cómo funciona el beneficio de envío gratis y los tiempos de entrega?",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   X,
@@ -42,34 +42,33 @@ export default function CartDrawer() {
   const [couponInput, setCouponInput] = useState("");
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
 
-  // Quick cross-sell suggestions (US-11)
-  const crossSellAccessories = [
-    {
-      id: "prod-protectores-steelbook",
-      title: "Pack 10 Protectores PET Steelbooks",
-      price: 28000,
-      format: "Merch",
-      category: "Accesorios",
-      posterUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d4/HD-DVD_and_Blu-Ray_cases_%28crop%29.jpg",
-    },
-    {
-      id: "prod-claqueta-profesional",
-      title: "Claqueta de Cine Acrílica",
-      price: 49000,
-      format: "Merch",
-      category: "Accesorios",
-      posterUrl: "https://images.unsplash.com/photo-1637248578458-934f03db3ea2?w=500&auto=format&fit=crop&q=80",
-    },
-  ];
+  const [recoverCheckout, setRecoverCheckout] = useState(false);
+  const [crossSellAccessories, setCrossSellAccessories] = useState<{
+    id: string; title: string; price: number; format: string; category: string; posterUrl: string; stock: number;
+  }[]>([]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const controller = new AbortController();
+    setCrossSellAccessories([]);
+    fetch("/api/products?category=Accesorios", { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (!controller.signal.aborted && data?.success) setCrossSellAccessories(data.products.filter(
+          (product: { id: string; stock: number }) => product.stock > 0 &&
+            ["prod-protectores-steelbook", "prod-claqueta-profesional"].includes(product.id),
+        ));
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [isOpen]);
 
   // Percentage towards free shipping
   const progressPercent = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex justify-end">
+      {isOpen && <div className="fixed inset-0 z-50 flex justify-end">
         {/* Backdrop */}
         <div
           onClick={closeCart}
@@ -212,7 +211,7 @@ export default function CartDrawer() {
             )}
 
             {/* 1-Click Cross-Selling Suggestions (US-11) */}
-            {items.length > 0 && (
+            {items.length > 0 && crossSellAccessories.length > 0 && (
               <div className="mt-4 pt-4 border-t border-parchment-200">
                 <span className="text-[11px] font-bold text-zinc-600 flex items-center gap-1 mb-2">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -318,6 +317,7 @@ export default function CartDrawer() {
               {/* Checkout Trigger */}
               <button
                 onClick={() => {
+                  setRecoverCheckout(false);
                   closeCart();
                   setCheckoutModalOpen(true);
                 }}
@@ -329,16 +329,25 @@ export default function CartDrawer() {
 
               <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-500">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Pago protegido con cifrado SSL & Wompi Bancolombia</span>
+                <span>Simulación académica sin cobros reales</span>
               </div>
             </div>
           )}
+          <button type="button" className="border-t border-parchment-200 p-3 text-xs font-bold text-cine-800 underline"
+            onClick={() => {
+              setRecoverCheckout(true);
+              closeCart();
+              setCheckoutModalOpen(true);
+            }}>
+            Consultar último pedido de prueba guardado
+          </button>
         </div>
-      </div>
+      </div>}
 
       {/* Checkout Modal */}
       <CheckoutModal
         isOpen={checkoutModalOpen}
+        recover={recoverCheckout}
         onClose={() => setCheckoutModalOpen(false)}
       />
     </>

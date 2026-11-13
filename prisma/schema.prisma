@@ -62,7 +62,7 @@ model Order {
   address         String
   deliveryMethod  String   // "ENVIO_NACIONAL" | "CONTRAENTREGA_LOCAL"
   paymentMethod   String   // "WOMPI_CARD" | "WOMPI_NEQUI" | "WOMPI_BANCOLOMBIA" | "WOMPI_BRE_B" | "WOMPI_PSE" | "CONTRAENTREGA"
-  paymentStatus   String   @default("APPROVED") // APPROVED, PENDING, DECLINED
+  paymentStatus   String   @default("PENDING")
   subtotal        Int
   discount        Int      @default(0)
   shippingCost    Int      @default(0)
@@ -71,7 +71,11 @@ model Order {
   pointsRedeemed  Int      @default(0)
   carrier         String?  // "Coordinadora", "Inter Rapidísimo", "Envía", "Mensajería Local Cartagena"
   trackingNumber  String?
-  status          String   @default("PAGADO") // PENDIENTE, PAGADO, ENVIADO, ENTREGADO
+  status          String   @default("PENDIENTE")
+  checkoutIdempotencyKey String? @unique
+  paymentAccessToken String? @unique
+  paidAt DateTime?
+  transactions PaymentTransaction[]
   itemsJson       String   // Array of { productId, title, price, quantity, format, posterUrl }
   createdAt       DateTime @default(now())
 }
@@ -85,4 +89,37 @@ model Review {
   comment          String
   collectorBadge   String?  // "Coleccionista 4K", "Director VIP", "Comprador Verificado"
   createdAt        DateTime @default(now())
+}
+
+model PaymentTransaction {
+  id String @id @default(cuid())
+  orderId String
+  order Order @relation(fields: [orderId], references: [id])
+  reference String @unique
+  provider String @default("WOMPI_SIMULATED")
+  paymentMethod String
+  amountInCents BigInt
+  currency String @default("COP")
+  status String @default("PENDING")
+  scenario String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  finalizedAt DateTime?
+  events PaymentEvent[]
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model PaymentEvent {
+  id String @id @default(cuid())
+  externalEventId String @unique
+  transactionId String
+  transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
+  eventType String
+  eventStatus String
+  signatureValid Boolean
+  receivedAt DateTime @default(now())
+
+  @@index([transactionId])
 }

@@ -1,33 +1,7 @@
-import fs from "node:fs";
-import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { fetchTMDBMovieDetails } from "../src/lib/tmdb";
 
-function loadEnvFromDisk() {
-  const envPath = path.resolve(process.cwd(), ".env");
-  if (!fs.existsSync(envPath)) return;
-
-  const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-    const eqIdx = line.indexOf("=");
-    if (eqIdx <= 0) continue;
-    const key = line.slice(0, eqIdx).trim();
-    let val = line.slice(eqIdx + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    if (process.env[key] === undefined || process.env[key] === "") {
-      process.env[key] = val;
-    }
-  }
-}
-
-loadEnvFromDisk();
+import { seedAccessories } from "./seed-accessories";
 
 const prisma = new PrismaClient();
 
@@ -38,12 +12,6 @@ async function main() {
   } else {
     console.log("TMDB_API_KEY not configured: resolving movie posters via curated TMDB library (src/lib/tmdb.ts)...");
   }
-
-  // Clean existing products and reviews
-  await prisma.review.deleteMany({});
-  await prisma.product.deleteMany({});
-  await prisma.waitlistLead.deleteMany({});
-  await prisma.order.deleteMany({});
 
   const products = [
     {
@@ -328,40 +296,6 @@ async function main() {
       tmdbRating: 8.7,
     },
     {
-      id: "prod-protectores-steelbook",
-      title: "Pack 10 Protectores Rígidos PET para Steelbooks",
-      originalTitle: "10-Pack PET Steelbook Protective Sleeves",
-      overview: "Fundas plásticas protectoras de polietileno transparente de 0.4mm, 100% libre de ácidos. Evitan roces, rayones en la pintura metálica y entrada de polvo. El accesorio indispensable de todo coleccionista.",
-      price: 28000,
-      format: "Merch",
-      category: "Accesorios",
-      director: "CineMerch Essentials",
-      year: 2026,
-      posterUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d4/HD-DVD_and_Blu-Ray_cases_%28crop%29.jpg",
-      stock: 40,
-      isPreorder: false,
-      isBestSeller: true,
-      regionCode: "Universal",
-      tmdbRating: 9.5,
-    },
-    {
-      id: "prod-claqueta-profesional",
-      title: "Claqueta Cinematográfica Acrílica con Sonido Real",
-      originalTitle: "Director Clapperboard Acrylic",
-      overview: "Claqueta de cine profesional con bisagra magnética de chasquido nítido. Superficie blanca en acrílico borrable para marcador. Ideal para set de grabación o exhibición en tu repisa de películas.",
-      price: 49000,
-      format: "Merch",
-      category: "Accesorios",
-      director: "CineMerch Studio",
-      year: 2026,
-      posterUrl: "https://images.unsplash.com/photo-1637248578458-934f03db3ea2?w=600&auto=format&fit=crop&q=80",
-      stock: 22,
-      isPreorder: false,
-      isBestSeller: true,
-      regionCode: "Universal",
-      tmdbRating: 9.3,
-    },
-    {
       id: "prod-poster-metalico-pulp",
       title: "Placa Metálica Vintage: Pulp Fiction Dance Scene",
       originalTitle: "Pulp Fiction Metal Wall Art Plate",
@@ -384,6 +318,7 @@ async function main() {
   let curatedResolvedCount = 0;
 
   for (const prod of products) {
+    if (await prisma.product.findUnique({ where: { id: prod.id } })) continue;
     let posterUrl = prod.posterUrl;
     let backdropUrl = "backdropUrl" in prod ? prod.backdropUrl : undefined;
     let tmdbRating = prod.tmdbRating;
@@ -402,8 +337,10 @@ async function main() {
       }
     }
 
-    await prisma.product.create({
-      data: {
+    await prisma.product.upsert({
+      where: { id: prod.id },
+      update: {},
+      create: {
         ...prod,
         posterUrl,
         ...(backdropUrl !== undefined ? { backdropUrl } : {}),
@@ -417,7 +354,7 @@ async function main() {
   );
 
   // Create initial reviews
-  await prisma.review.createMany({
+  if (await prisma.review.count() === 0) await prisma.review.createMany({
     data: [
       {
         productId: "prod-oppenheimer-steelbook",
@@ -453,47 +390,15 @@ async function main() {
   ];
 
   for (const lead of sampleLeads) {
-    await prisma.waitlistLead.create({
-      data: lead,
+    await prisma.waitlistLead.upsert({
+      where: { email: lead.email },
+      update: {},
+      create: lead,
     });
   }
 
-  // Create a sample order to populate the admin panel
-  await prisma.order.create({
-    data: {
-      orderNumber: "CNM-2026-8841",
-      customerName: "Valentina Meza",
-      customerEmail: "vmeza@gmail.com",
-      customerPhone: "3004567890",
-      city: "Cartagena",
-      department: "Bolívar",
-      address: "Bocagrande Carrera 3ra # 6-40",
-      deliveryMethod: "CONTRAENTREGA_LOCAL",
-      paymentMethod: "CONTRAENTREGA",
-      paymentStatus: "APPROVED",
-      subtotal: 189000,
-      discount: 0,
-      shippingCost: 0,
-      total: 189000,
-      pointsEarned: 189,
-      pointsRedeemed: 0,
-      carrier: "Mensajería Local Cartagena",
-      trackingNumber: "LOCAL-CTG-904",
-      status: "PAGADO",
-      itemsJson: JSON.stringify([
-        {
-          productId: "prod-dune-part-two",
-          title: "Dune: Parte Dos - Steelbook Glow in Dark 4K UHD",
-          price: 189000,
-          quantity: 1,
-          format: "Steelbook",
-          posterUrl: "https://image.tmdb.org/t/p/w780/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg"
-        }
-      ])
-    }
-  });
-
-  console.log("Database seeded successfully with verified movies, reviews, and sample orders!");
+  await seedAccessories(prisma);
+  console.log("Catálogo, reseñas iniciales y lista de espera verificados.");
 }
 
 main()

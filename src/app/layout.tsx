@@ -11,7 +11,7 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "CineMerch | Tienda Especializada en Ediciones Físicas y Merchandising de Cine",
   description:
-    "CineMerch: Catálogo curado en 4K Ultra HD, Steelbooks exclusivos, kits temáticos y figuras oficiales en Cartagena y Colombia. Sincronizado con TMDB, pasarela Wompi y Google Analytics 4.",
+    "CineMerch: Catálogo curado en 4K Ultra HD, Steelbooks exclusivos, kits temáticos y figuras oficiales en Cartagena y Colombia. Sincronizado con TMDB, simulación académica de Wompi y Google Analytics 4.",
   keywords: [
     "CineMerch",
     "4K UHD Colombia",

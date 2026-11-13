@@ -38,12 +38,22 @@ export default function AdminPage() {
   const [newStock, setNewStock] = useState("15");
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const [token, setToken] = useState("");
+  const [tokenInput, setTokenInput] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [ordersMessage, setOrdersMessage] = useState("Consultando órdenes…");
+  const requestVersion = React.useRef(0);
+
+  const fetchData = async (accessToken = token) => {
+    const version = ++requestVersion.current;
+    const headers = { Authorization: "Bearer " + accessToken };
+    setAdminError("");
+    setOrdersMessage("Consultando órdenes…");
     setLoading(true);
     try {
       const [resOrders, resLeads, resProds] = await Promise.all([
-        fetch("/api/orders"),
-        fetch("/api/waitlist"),
+        fetch("/api/orders", { headers }),
+        fetch("/api/waitlist", { headers }),
         fetch("/api/products"),
       ]);
 
@@ -51,18 +61,35 @@ export default function AdminPage() {
       const dataLeads = await resLeads.json();
       const dataProds = await resProds.json();
 
-      if (dataOrders.success) setOrders(dataOrders.orders);
-      if (dataLeads.success) setLeads(dataLeads.leads);
+      if (version !== requestVersion.current) return;
+      setOrders(dataOrders.success ? dataOrders.orders : []);
+      setLeads(dataOrders.success && dataLeads.success ? dataLeads.leads : []);
+      if (resOrders.status === 401) {
+        setOrdersMessage(accessToken
+          ? "El token administrativo no es válido. Copia el valor de ADMIN_ACCESS_TOKEN de .env.local y vuelve a aplicarlo."
+          : "Para ver las órdenes guardadas, aplica el token administrativo de .env.local.");
+      } else if (!resOrders.ok || !dataOrders.success) {
+        setOrdersMessage(dataOrders.error || "No se pudieron consultar las órdenes.");
+      } else {
+        setOrdersMessage("Aún no se han registrado órdenes.");
+      }
       if (dataProds.success) setProducts(dataProds.products);
     } catch (e) {
-      console.error("Admin fetch error", e);
+      if (version === requestVersion.current) {
+        setOrders([]);
+        setLeads([]);
+        setOrdersMessage("No se pudieron consultar las órdenes. Usa Actualizar Datos para reintentar.");
+        setAdminError("No se pudieron consultar los datos administrativos.");
+      }
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    const saved = sessionStorage.getItem("cinemerch_admin_token") || "";
+    setToken(saved);
+    void fetchData(saved);
   }, []);
 
   // TMDB Autocomplete Handler (US-05)
@@ -98,7 +125,7 @@ export default function AdminPage() {
     try {
       const res = await fetch("/api/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({
           title: newTitle,
           tmdbId: tmdbIdInput ? Number(tmdbIdInput) : null,
@@ -123,6 +150,8 @@ export default function AdminPage() {
         setNewPosterUrl("");
         fetchData();
         setTimeout(() => setSaveSuccessMsg(null), 4000);
+      } else {
+        setAdminError(data.error || "No se pudo guardar el producto.");
       }
     } catch (err) {
       alert("Error al guardar producto.");
@@ -134,22 +163,31 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await res.json();
       if (data.success) {
         fetchData();
+      } else {
+        if (res.status === 401) {
+          setOrders([]);
+          setLeads([]);
+          setOrdersMessage("Vuelve a aplicar el token administrativo para ver las órdenes.");
+        }
+        setAdminError(data.error || "No se pudo actualizar el pedido.");
       }
     } catch (e) {
-      alert("Error actualizando orden.");
+      setAdminError("Error actualizando orden.");
     }
   };
 
   // Calculations for KPIs
-  const totalSalesCOP = orders.reduce((acc, o) => acc + o.total, 0);
-  const averageTicketCOP = orders.length > 0 ? Math.round(totalSalesCOP / orders.length) : 0;
-  const pendingOrdersCount = orders.filter((o) => o.status === "PENDIENTE").length;
+  const approved = orders.filter((order) => order.paymentStatus === "APPROVED");
+  const pending = orders.filter((order) => order.paymentStatus === "PENDING");
+  const failed = orders.filter((order) => ["DECLINED", "ERROR"].includes(order.paymentStatus));
+  const totalSalesCOP = approved.reduce((acc, o) => acc + o.total, 0);
+  const averageTicketCOP = approved.length ? Math.round(totalSalesCOP / approved.length) : 0;
 
   // Export Leads to CSV (US-20)
   const exportLeadsCSV = () => {
@@ -186,13 +224,13 @@ export default function AdminPage() {
               Centro de Control de Operaciones
             </h1>
             <p className="text-xs text-zinc-400">
-              Métricas de ventas, gestión de pedidos Wompi/Contraentrega y catálogo sincronizado con TMDB.
+              Pagos de simulación, gestión de pedidos y catálogo sincronizado con TMDB.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <button
-              onClick={fetchData}
+              onClick={() => void fetchData()}
               className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-zinc-800 transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -201,7 +239,28 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        <form className="flex flex-wrap items-end gap-2 px-4 pb-3" onSubmit={(event) => {
+        event.preventDefault();
+        const value = tokenInput.trim();
+        if (value) sessionStorage.setItem("cinemerch_admin_token", value);
+        else sessionStorage.removeItem("cinemerch_admin_token");
+        setOrders([]);
+        setLeads([]);
+        setToken(value);
+        setTokenInput("");
+        void fetchData(value);
+      }}>
+        <label className="grid gap-1 text-sm">Token administrativo
+          <input type="password" autoComplete="off" value={tokenInput} onChange={(event) => setTokenInput(event.target.value)}
+            placeholder="Valor de ADMIN_ACCESS_TOKEN" aria-describedby="admin-token-help"
+            className="rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2" />
+        </label>
+        <button className="rounded-xl bg-amber-400 px-3 py-2 text-sm font-bold text-zinc-950">Aplicar token</button>
+        <p id="admin-token-help" className="basis-full text-xs text-zinc-400">El token está en el archivo local <code>.env.local</code>.</p>
+      </form>
+      {adminError && <p role="alert" className="px-4 pb-3 text-rose-300">{adminError}</p>}
+
+      {/* Tab Navigation */}
         <div className="flex items-center gap-2 border-b border-zinc-800 pb-3 text-xs overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveTab("kpis")}
@@ -253,13 +312,13 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl">
                 <div className="flex items-center justify-between text-zinc-400 text-xs mb-2">
-                  <span>Ventas Totales COP</span>
+                  <span>Ventas cobradas · COP</span>
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div className="text-2xl font-serif font-black text-emerald-400">
                   ${totalSalesCOP.toLocaleString("es-CO")}
                 </div>
-                <p className="text-[10px] text-zinc-400 mt-1">Facturado en pasarela Wompi & Contraentrega</p>
+                <p className="text-[10px] text-zinc-400 mt-1">Importe de pedidos aprobados en la simulación</p>
               </div>
 
               <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl">
@@ -281,7 +340,7 @@ export default function AdminPage() {
                 <div className="text-2xl font-serif font-black text-white">
                   {orders.length}
                 </div>
-                <p className="text-[10px] text-zinc-400 mt-1">{pendingOrdersCount} pendientes de despacho</p>
+                <p className="text-[10px] text-zinc-400 mt-1">{approved.length} aprobados · {pending.length} pendientes · {failed.length} rechazados o con error</p>
               </div>
 
               <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl">
@@ -358,7 +417,7 @@ export default function AdminPage() {
                     {orders.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="p-8 text-center text-zinc-500">
-                          Aún no se han registrado órdenes. Realiza una compra en la tienda para probar el flujo.
+                          <span role="status">{ordersMessage}</span>
                         </td>
                       </tr>
                     ) : (
@@ -380,6 +439,9 @@ export default function AdminPage() {
                             <span className="bg-black/60 px-2 py-0.5 rounded border border-zinc-700 font-mono text-[10px]">
                               {ord.paymentMethod}
                             </span>
+                            <div>{ord.paymentStatus}</div>
+                            <div className="max-w-48 break-all text-[10px] text-zinc-400">{ord.transaction?.reference || "Sin referencia"}</div>
+                            {ord.transaction && <time className="text-[10px] text-zinc-400">{new Date(ord.transaction.createdAt).toLocaleString("es-CO")}</time>}
                           </td>
                           <td className="p-4 font-mono font-bold text-white">
                             ${ord.total.toLocaleString("es-CO")}
@@ -405,14 +467,15 @@ export default function AdminPage() {
                           </td>
                           <td className="p-4 text-right">
                             <select
-                              value={ord.status}
+                              value=""
+                              aria-label="Cambiar estado logístico"
+                              disabled={ord.paymentStatus !== "APPROVED" || !["PAGADO", "ENVIADO"].includes(ord.status)}
                               onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
                               className="bg-black border border-zinc-700 text-zinc-200 text-[11px] p-1 rounded-lg focus:outline-none"
                             >
-                              <option value="PENDIENTE">PENDIENTE</option>
-                              <option value="PAGADO">PAGADO</option>
-                              <option value="ENVIADO">ENVIADO</option>
-                              <option value="ENTREGADO">ENTREGADO</option>
+                              <option value="">Seleccionar</option>
+                              {ord.paymentStatus === "APPROVED" && ord.status === "PAGADO" && <option value="ENVIADO">ENVIADO</option>}
+                              {ord.paymentStatus === "APPROVED" && ord.status === "ENVIADO" && <option value="ENTREGADO">ENTREGADO</option>}
                             </select>
                           </td>
                         </tr>
