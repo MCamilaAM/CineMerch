@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Film, ShoppingBag, Menu, X, Sparkles, Award, ShieldCheck, Search } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
@@ -23,9 +24,14 @@ export default function Navbar() {
       <nav className="bg-cine-900 border-b border-cine-800 text-white px-4 sm:px-8 py-3.5 flex items-center justify-between transition-colors">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-cine-700/80 border border-cine-500/50 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-            <Film className="w-5 h-5 text-amber-300" />
-          </div>
+          <Image
+            src="/cinemerch-logo.png"
+            alt=""
+            width={493}
+            height={390}
+            priority
+            className="h-auto w-14 shrink-0 rounded-lg bg-white sm:w-16"
+          />
           <div>
             <span className="text-xl sm:text-2xl font-serif font-black tracking-tight text-white group-hover:text-amber-200 transition-colors">
               Cine<span className="text-amber-400">Merch</span>

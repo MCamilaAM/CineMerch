@@ -22,3 +22,20 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@media print {
+  body:has(.cinemerch-checkout) > :not(.cinemerch-checkout) {
+    display: none !important;
+  }
+
+  .cinemerch-checkout, .cinemerch-checkout > div {
+    background: white !important;
+    color: black !important;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .cinemerch-checkout :is(h4, dt) {
+    color: black !important;
+  }
+}

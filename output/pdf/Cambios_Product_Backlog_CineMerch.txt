@@ -1,0 +1,133 @@
+CAMBIOS REALIZADOS AL PRODUCT BACKLOG DE CINEMERCH
+
+Documento de referencia: Product_Backlog_CineMerch.pdf
+Documento actualizado: Product_Backlog_CineMerch_actualizado.pdf
+Fecha de actualización: 25 de noviembre de 2026
+
+1. FORMATO Y ORGANIZACIÓN
+
+Se conservaron el título del proyecto, los integrantes, la institución, las siete épicas, las historias US-01 a US-20 y las nueve tablas numeradas.
+
+Se mantuvieron el estilo académico, la tipografía Times New Roman, los títulos, la numeración de páginas y las columnas de las tablas de historias.
+
+La fecha de portada se actualizó y se agregó una indicación de versión respecto al documento del 26 de octubre de 2026.
+
+El documento pasó de 9 a 12 páginas por la ampliación de los criterios y la incorporación del control de cambios.
+
+2. CONTEXTO Y PLANIFICACIÓN
+
+Se explicó que el alcance revisado corresponde a una demostración académica local.
+
+Se conservaron las prioridades y estimaciones originales para mantener la trazabilidad.
+
+Se aclaró que las historias suman 113 puntos: 16 en la semana 1, 58 en la semana 2 y 39 en la semana 3. La capacidad prevista es de 48 puntos para los tres sprints, por lo que existe una diferencia de 65 puntos.
+
+La distribución de las semanas 2 y 3 se presentó como planificación inicial. El compromiso de cada sprint debe seleccionarse según la capacidad disponible.
+
+La meta de la campaña se ajustó a los primeros 100 inscritos, coherente con el contador del proyecto. El objetivo de 200 registros de la copia original quedó sujeto a una nueva decisión del Product Owner.
+
+Se actualizaron las responsabilidades previstas del equipo para incluir pagos simulados, eventos firmados y recuperación del checkout.
+
+3. ARQUITECTURA E INTEGRACIONES
+
+Se precisó el uso actual de Next.js 14, React 18, TypeScript, Tailwind CSS, componentes propios y Lucide. Shadcn UI y Radix se identificaron fuera de las dependencias actuales.
+
+La base actual se describió como SQLite con Prisma 5, respaldo previo y seed aditivo. PostgreSQL en Supabase o Neon quedó como evolución pendiente.
+
+Se incorporó la biblioteca curada de respaldo para las consultas de TMDB y se explicó que los metadatos se concentran en el modelo Product.
+
+La integración Wompi del planteamiento original se adecuó al flujo simulado que tiene el proyecto.
+
+Resend, WhatsApp Cloud API, Twilio, Meta Pixel y TikTok Events API se identificaron como integraciones pendientes.
+
+Se añadieron al alcance la política de datos, las condiciones, el consentimiento persistido, la analítica opcional, la atribución UTM, el SEO técnico y la identidad visual del proyecto.
+
+4. ACUERDOS DE CALIDAD
+
+Se indicó que las estimaciones deben revisarse cuando el equipo apruebe un cambio de alcance.
+
+La Definition of Done conservó la revisión por Pull Request, TypeScript, ESLint, pruebas, verificación responsive, staging y aceptación del Product Owner.
+
+Se precisaron las pruebas de consentimiento, inventario, idempotencia y puntos proyectados, junto con los importes y eventos de pago.
+
+Se incorporó la referencia a las 13 pruebas existentes.
+
+5. CAMBIOS POR HISTORIA
+
+US-01. Infraestructura
+La historia se ajustó a una base local reproducible con SQLite. Se documentaron respaldo, seed aditivo y manejo de variables sensibles. PostgreSQL, CI/CD.
+
+US-02. Landing y registro
+Se incorporaron el consentimiento expreso y el registro de su fecha y versión. Se precisaron el contador de 100 y el cupón mostrado en pantalla. Quedaron pendientes la validación específica de celular colombiano y la restricción del beneficio a la primera compra de un cliente identificado.
+
+US-03. Correo de bienvenida
+Se mantuvo como pendiente el envío asíncrono mediante Resend y su plantilla responsive. Se aclaró que el cupón ya se almacena y se muestra en pantalla.
+
+US-04. Analítica
+La historia se adecuó al monitor local, los eventos actuales, la atribución UTM y GA4 opcional con consentimiento. Meta y TikTok quedaron pendientes de integración y verificación.
+
+US-05. Alta con TMDB
+Se describieron la consulta en servidor, el respaldo curado y los campos editables actuales. Se identificó como pendiente guardar desde el alta todos los metadatos obtenidos y normalizar Movie, Director, Actor y ProductVariant.
+
+US-06. Filtros del catálogo
+Se registraron los filtros actuales por director, formato y categoría. Quedaron pendientes la sincronización con la URL, los enlaces compartidos, los filtros por estudio, Oscar y década y las páginas dedicadas a directores.
+
+US-07. Ficha técnica
+Se registraron los datos visibles de región, audio, subtítulos, estudio, elenco y formato. Se señalaron como pendientes los campos estructurados de HDR, material extra y variantes y la corrección de valores técnicos asumidos cuando falta información.
+
+US-08. Kits
+La historia se adecuó al listado de bundles, su descripción, precio y agregado al carrito. Quedaron pendientes los componentes relacionados, el inventario individual, las tallas y variantes y el cálculo del ahorro a partir de precios reales.
+
+US-09. Carrito
+Se documentó el cumplimiento funcional de persistencia, notificaciones, cantidades y subtotal. Se agregó la conservación del modal de checkout y la consulta del último pedido guardado.
+
+US-10. Envío gratis
+Se precisaron el umbral de $150.000 COP, la fórmula del monto faltante, la barra, la felicitación y la confirmación del envío en servidor.
+
+US-11. Venta cruzada
+Se registró que los accesorios se obtienen del catálogo con precio y stock vigentes y se agregan con un clic. Se mantuvo pendiente seleccionar sugerencias según el contenido del carrito.
+
+US-12. Pagos
+La historia se reformuló para un intento simulado con tarjeta, Nequi, PSE, Bancolombia y Bre-B. Se añadieron orden pendiente, token privado, idempotencia, firma SHA-256, recuperación y descuento atómico de stock.
+
+La integración bancaria real y la coherencia del mensaje posterior a Cancelar quedaron pendientes.
+
+US-13. Contraentrega
+El alcance geográfico se ajustó a Cartagena, Bolívar. Se especificó la creación de una orden pendiente sin transacción Wompi. El punto de recogida y el registro del cobro local quedaron pendientes.
+
+US-14. Proforma y confirmación
+La historia se adecuó a una proforma de prueba imprimible en pantalla con importes, IVA y datos del intento. Los avisos por correo y WhatsApp quedaron pendientes.
+
+US-15. Preventas
+Se registraron las etiquetas y fechas visibles. Se explicó que el contador actual inicia con una duración fija y se reinicia al cargar. Quedaron pendientes vincularlo a una fecha real y definir las reglas de reserva y cobro anticipado.
+
+US-16. Logística
+Se describieron los campos de transportadora y guía y las transiciones de estado existentes. Quedaron pendientes la consulta del cliente con rastreo por pedido, la edición de la guía desde el panel y el aviso al pasar a Enviado.
+
+US-17. Fidelización
+Se distinguió la proyección de puntos registrada en la orden del saldo persistente de un cliente. Se documentaron los rangos y la vista de progreso. Quedaron pendientes las cuentas, la acreditación efectiva y los beneficios operativos.
+
+US-18. Canje
+Se dejó explícito que el canje está desactivado y que el servidor rechaza valores de puntos distintos de cero. Se identificaron como dependencias el saldo verificado, el débito atómico y el tope de descuento antes de activar el control deslizante.
+
+US-19. Reseñas
+Se mantuvo pendiente la publicación de reseñas verificadas y la subida de imágenes. Se distinguieron esas funciones de las reseñas iniciales y testimonios que ya existen.
+
+US-20. Administración
+Se describieron el token administrativo, la consulta de órdenes e interesados, el alta de productos, las métricas de pagos aprobados y la exportación de leads.
+
+Quedaron pendientes los usuarios con rol ADMIN, las ventas mensuales, el CAC calculado, las preventas pendientes, los productos más vendidos, los gráficos y la exportación de órdenes.
+
+6. PLAN DE EJECUCIÓN INMEDIATA
+
+Se actualizó la meta del Sprint 1 para consolidar la landing, el cupón, la arquitectura local, el consentimiento y la observación del embudo.
+
+Las seis tareas conservaron la distribución prevista de responsables. Se adecuaron a la revisión de SQLite, el formulario, las integraciones pendientes, la analítica, TMDB y la preparación de QA y staging.
+
+El plan se presentó como una propuesta de trabajo pendiente de compromiso y aceptación del equipo.
+
+7. CONTROL DE CAMBIOS
+
+Se añadió una sección final que resume las decisiones de arquitectura, pagos, notificaciones, fidelización, comunidad, protección de datos, marketing e identidad.
+
+Se indicó que los cambios posteriores a la entrega deben registrarse con fecha, historia afectada, motivo y evidencia.

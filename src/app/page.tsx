@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { siteOrigin } from "@/lib/site";
 import Hero from "@/components/Hero";
 import CategoryBanners from "@/components/CategoryBanners";
 import AboutSection from "@/components/AboutSection";
@@ -8,6 +10,8 @@ import Testimonials from "@/components/Testimonials";
 import FaqSection from "@/components/FaqSection";
 import WaitlistBanner from "@/components/WaitlistBanner";
 import { FloatingCinemaCanvas } from "@/components/CinemaDecorations";
+
+export const metadata: Metadata = { alternates: siteOrigin() ? { canonical: "/" } : undefined };
 
 export default function HomePage() {
   return (

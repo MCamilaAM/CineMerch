@@ -50,7 +50,7 @@ export default function AnalyticsDebugger() {
           </span>
           <Activity className="w-3.5 h-3.5 text-amber-400" />
           <span className="font-semibold text-[11px] tracking-wide text-zinc-100">
-            GA4 Live: <span className="text-amber-400">{events.length}</span> eventos
+            Analítica local · <span className="text-amber-400">{events.length}</span> eventos
           </span>
           {isOpen ? <ChevronDown className="w-3.5 h-3.5 ml-1 text-zinc-400" /> : <ChevronUp className="w-3.5 h-3.5 ml-1 text-zinc-400" />}
         </button>
@@ -63,8 +63,8 @@ export default function AnalyticsDebugger() {
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-400" />
               <div>
-                <h4 className="font-bold text-xs text-white">Google Analytics 4 Monitor</h4>
-                <p className="text-[10px] text-zinc-400 font-mono">Stream: {GA_MEASUREMENT_ID}</p>
+                <h4 className="font-bold text-xs text-white">Embudo de CineMerch</h4>
+                <p className="text-[10px] text-zinc-400 font-mono">{GA_MEASUREMENT_ID ? "GA4 opcional según consentimiento" : "Eventos de esta página"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -84,10 +84,15 @@ export default function AnalyticsDebugger() {
             </div>
           </div>
 
+          <div className="grid grid-cols-3 gap-2 border-b border-zinc-800 p-3 text-[10px]">
+            {([["generate_lead", "Registros"], ["begin_checkout", "Checkouts"], ["purchase", "Aprobados"]] as const).map(([name, label]) => (
+              <span key={name}>{label} <strong className="text-amber-300">{events.filter((event) => event.eventName === name).length}</strong></span>
+            ))}
+          </div>
           <div className="max-h-72 overflow-y-auto divide-y divide-zinc-900 p-2 space-y-1">
             {events.length === 0 ? (
               <div className="text-center py-6 text-zinc-500 text-[11px]">
-                Navega por la página, abre productos o usa el carrito para ver eventos disparados hacia Google Analytics en tiempo real.
+                Navega por la página, abre productos o usa el carrito para ver los eventos de la demo.
               </div>
             ) : (
               events.map((evt) => (
@@ -110,7 +115,7 @@ export default function AnalyticsDebugger() {
                   <div className="mt-1 text-[10px] text-zinc-400 truncate">
                     {evt.params.item_name && `Producto: ${evt.params.item_name}`}
                     {evt.params.value && ` | Valor: $${Number(evt.params.value).toLocaleString("es-CO")} COP`}
-                    {evt.params.lead_type && ` | Lead: ${evt.params.coupon_code}`}
+                    {evt.params.lead_type && " · Registro de interés"}
                   </div>
 
                   {/* Expanded JSON details */}

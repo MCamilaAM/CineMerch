@@ -1,3 +1,4 @@
+import { failure, requireAdmin } from "@/lib/payment-http";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchTMDBMovieDetails } from "@/lib/tmdb";
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    requireAdmin(request);
     const body = await request.json();
     let {
       title,
@@ -120,10 +122,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, product });
   } catch (error) {
-    console.error("Error creating product:", error);
-    return NextResponse.json(
-      { success: false, error: "Error al guardar producto" },
-      { status: 500 }
-    );
+    return failure(error);
   }
 }
