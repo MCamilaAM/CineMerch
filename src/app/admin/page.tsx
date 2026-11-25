@@ -44,7 +44,7 @@ export default function AdminPage() {
   const [ordersMessage, setOrdersMessage] = useState("Consultando órdenes…");
   const requestVersion = React.useRef(0);
 
-  const fetchData = async (accessToken = token) => {
+  const fetchData = React.useCallback(async (accessToken: string) => {
     const version = ++requestVersion.current;
     const headers = { Authorization: "Bearer " + accessToken };
     setAdminError("");
@@ -84,13 +84,13 @@ export default function AdminPage() {
     } finally {
       if (version === requestVersion.current) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("cinemerch_admin_token") || "";
     setToken(saved);
     void fetchData(saved);
-  }, []);
+  }, [fetchData]);
 
   // TMDB Autocomplete Handler (US-05)
   const handleFetchTMDB = async () => {
@@ -148,7 +148,7 @@ export default function AdminPage() {
         setNewDirector("");
         setNewOverview("");
         setNewPosterUrl("");
-        fetchData();
+        void fetchData(token);
         setTimeout(() => setSaveSuccessMsg(null), 4000);
       } else {
         setAdminError(data.error || "No se pudo guardar el producto.");
@@ -168,7 +168,7 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        fetchData();
+        void fetchData(token);
       } else {
         if (res.status === 401) {
           setOrders([]);
@@ -230,7 +230,7 @@ export default function AdminPage() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => void fetchData()}
+              onClick={() => void fetchData(token)}
               className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border border-zinc-800 transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -345,7 +345,7 @@ export default function AdminPage() {
 
               <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-3xl">
                 <div className="flex items-center justify-between text-zinc-400 text-xs mb-2">
-                  <span>Leads "100 Cinéfilos"</span>
+                  <span>Leads &quot;100 Cinéfilos&quot;</span>
                   <Users className="w-4 h-4 text-rose-400" />
                 </div>
                 <div className="text-2xl font-serif font-black text-rose-300">
@@ -366,7 +366,7 @@ export default function AdminPage() {
                 <div className="bg-black/40 p-4 rounded-2xl border border-zinc-800/80">
                   <h4 className="font-bold text-amber-300 mb-1">1. Adquisición (CAC & Leads)</h4>
                   <p className="text-zinc-400 text-[11px] leading-relaxed">
-                    Campaña "Primeros 100 Cinéfilos" con captura de WhatsApp y correo. Los eventos están siendo monitoreados en Google Analytics 4 mediante el evento <code className="text-emerald-400 font-mono">lead_capture</code>.
+                    Campaña &quot;Primeros 100 Cinéfilos&quot; con captura de WhatsApp y correo. Los eventos están siendo monitoreados en Google Analytics 4 mediante el evento <code className="text-emerald-400 font-mono">lead_capture</code>.
                   </p>
                 </div>
 
@@ -656,7 +656,7 @@ export default function AdminPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-serif font-black text-lg text-white">
-                  Lista de Espera "Primeros 100 Cinéfilos" ({leads.length} registrados)
+                  Lista de Espera &quot;Primeros 100 Cinéfilos&quot; ({leads.length} registrados)
                 </h3>
                 <p className="text-xs text-zinc-400">
                   Cupones de preventa emitidos con 10% de descuento de bienvenida.

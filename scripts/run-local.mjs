@@ -15,7 +15,7 @@ export function run(command, args, env = process.env) {
 }
 
 export function loadLocalEnv() {
-  nextEnv.loadEnvConfig(process.cwd(), true);
+  nextEnv.loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production");
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {

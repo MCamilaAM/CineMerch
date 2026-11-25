@@ -5,9 +5,10 @@ import { latestAttempt, serializeTransaction } from "@/lib/payment-service";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const order = await prisma.order.findUnique({ where: { id: params.id }, include: { transactions: latestAttempt } });
+    const { id } = await params;
+    const order = await prisma.order.findUnique({ where: { id }, include: { transactions: latestAttempt } });
     requireOrderAccess(request, order?.paymentAccessToken);
     if (!order) throw new PaymentError(404, "Pedido no encontrado");
     return NextResponse.json({

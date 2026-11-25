@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { failure, PaymentError, requireDemo, requireOrderAccess } from "@/lib/payment-http";
 import { latestAttempt, newAttempt, serializeTransaction, writePayment } from "@/lib/payment-service";
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     requireDemo();
+    const { id } = await params;
     const transaction = await writePayment(async (db) => {
-      const order = await db.order.findUnique({ where: { id: params.id }, include: { transactions: latestAttempt } });
+      const order = await db.order.findUnique({ where: { id }, include: { transactions: latestAttempt } });
       requireOrderAccess(request, order?.paymentAccessToken);
       const attempt = order!.transactions[0];
       if (!order || attempt?.provider !== "WOMPI_SIMULATED" || order.paymentStatus === "APPROVED") {
