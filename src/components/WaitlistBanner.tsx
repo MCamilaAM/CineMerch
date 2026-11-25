@@ -104,7 +104,7 @@ export default function WaitlistBanner() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
               </span>
-              <span>¡Quedan solo {remainingSpots} cupos para los "Primeros 100 Cinéfilos"!</span>
+              <span>¡Quedan solo {remainingSpots} cupos para los &quot;Primeros 100 Cinéfilos&quot;!</span>
             </div>
 
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-black tracking-tight text-white leading-tight">

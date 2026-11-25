@@ -2,34 +2,44 @@
   "name": "cinemerch",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "prisma:generate": "prisma generate",
+    "dev": "next dev --webpack",
+    "build": "npm run prisma:generate && next build --webpack",
+    "start": "node scripts/start-production.mjs",
+    "lint": "eslint src scripts tests prisma",
+    "postinstall": "npm run prisma:generate",
+    "prisma:generate": "node scripts/run-local.mjs npx prisma generate",
     "prisma:push": "prisma db push",
     "db:setup": "node scripts/setup-db.mjs",
+    "db:deploy": "node scripts/deploy-db.mjs",
+    "db:baseline": "node scripts/baseline-db.mjs",
     "db:seed": "node scripts/run-local.mjs npx tsx prisma/seed.ts",
     "test:payments": "node scripts/test-payments.mjs",
-    "typecheck": "tsc --noEmit --incremental false"
+    "test:deployment": "node --test tests/deployment.test.mjs",
+    "typecheck": "next typegen && tsc --noEmit --incremental false"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "@next/env": "16.4.6",
+    "@prisma/client": "5.22.0",
     "canvas-confetti": "^1.9.4",
-    "lucide-react": "^0.454.0",
-    "next": "^14.2.18",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "lucide-react": "1.80.0",
+    "next": "16.4.6",
+    "prisma": "5.22.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20.17.6",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
+    "@types/react": "19.3.3",
+    "@types/react-dom": "19.3.0",
     "autoprefixer": "^10.4.20",
+    "eslint": "10.15.0",
+    "eslint-config-next": "16.4.6",
     "postcss": "^8.4.47",
-    "prisma": "^5.22.0",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.23.15",
     "typescript": "^5.6.3"

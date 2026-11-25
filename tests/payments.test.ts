@@ -40,7 +40,7 @@ async function checkout(body: Record<string, unknown> = {}, key = randomUUID()) 
 }
 
 function context(data: { order: { id: string } }) {
-  return { params: { id: data.order.id } };
+  return { params: Promise.resolve({ id: data.order.id }) };
 }
 
 async function stock(id = product) {

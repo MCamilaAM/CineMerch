@@ -10,17 +10,21 @@ El monitor local funciona sin credenciales. Configura una propiedad propia en `N
 
 ## Preparación local
 
-1. Ejecuta `npm install`.
+1. Usa Node.js 24 y ejecuta `npm ci`. El cliente Prisma se genera automáticamente.
 2. Si es una instalación nueva, copia `.env.example` a `.env.local`. Si ya tienes `.env`, conserva su configuración. Next.js y los scripts de base cargan `.env.local` mediante `@next/env`. Las variables de la terminal tienen prioridad.
 3. Genera dos valores independientes con `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` y guárdalos en `.env.local` como `MOCK_WOMPI_EVENT_SECRET` y `ADMIN_ACCESS_TOKEN`. Conserva `PAYMENT_PROVIDER=WOMPI_SIMULATED` y `PAYMENT_SIMULATION_ENABLED=true` para activar la demo.
-4. Ejecuta `npm run prisma:generate`, prepara SQLite y ejecuta `npm run db:seed`.
+4. Prepara SQLite y ejecuta `npm run db:seed` si necesitas los datos de demostración.
 5. Inicia con `npm run dev` y abre `http://localhost:3000`.
 
 ### Preparar SQLite
 
-Usa `npm run db:setup` si la base es nueva. La URL `file:./dev.db` se resuelve desde `prisma/`. Para una base existente, detén la aplicación y cualquier otro cliente SQLite. Ejecuta `npm run db:setup -- --app-stopped`. El script rechaza archivos `-wal` o `-journal`, guarda un respaldo fechado y ejecuta `prisma db push` sin opciones de pérdida de datos. Conserva el respaldo hasta verificar la actualización.
+Usa `npm run db:setup` si la base es nueva. La URL `file:./dev.db` se resuelve desde `prisma/`. Para una base existente, detén la aplicación y cualquier otro cliente SQLite. Si no tiene historial de migraciones, ejecuta una sola vez `npm run db:baseline -- --app-stopped`. Después ejecuta `npm run db:setup -- --app-stopped`. Los scripts rechazan archivos `-wal` o `-journal`, guardan un respaldo fechado y aplican las migraciones sin reiniciar los datos. Conserva el respaldo hasta verificar la actualización.
 
 El seed agrega el catálogo y los accesorios faltantes, inserta reseñas iniciales si la tabla está vacía y agrega leads de ejemplo por correo. Conserva pedidos, precios y existencias previas.
+
+## Producción
+
+Consulta [la configuración de producción y SQLite persistente](docs/produccion.md). Compila con `npm run build` y arranca con `npm start`. Prisma se genera durante la instalación y la compilación. El arranque exige una URL SQLite absoluta, aplica las migraciones y escucha en `0.0.0.0` y `PORT`. Configura un volumen persistente y las variables de `.env.production.example`; los datos de demostración no se cargan automáticamente.
 
 ### Probar el checkout
 

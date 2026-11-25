@@ -4,6 +4,7 @@ import { loadLocalEnv, run } from "./run-local.mjs";
 
 try {
   loadLocalEnv();
+  if (process.env.NODE_ENV === "production") throw new Error("En producción usa npm run db:deploy.");
   const url = process.env.DATABASE_URL;
   if (!url?.startsWith("file:") || /[?#]/.test(url)) throw new Error("DATABASE_URL debe indicar un archivo SQLite sin parámetros.");
   const path = decodeURIComponent(url.slice(5));
@@ -24,7 +25,7 @@ try {
     mkdirSync(dirname(database), { recursive: true });
     closeSync(openSync(database, "wx"));
   }
-  process.exitCode = run(process.execPath, ["node_modules/prisma/build/index.js", "db", "push"]);
+  process.exitCode = run(process.execPath, ["node_modules/prisma/build/index.js", "migrate", "deploy"]);
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;

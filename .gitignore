@@ -37,4 +37,10 @@ prisma/*.db
 prisma/*.db-journal
 /work/
 prisma/*.db-*
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+/data/
+.env.production
 *.tsbuildinfo

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { failure, objectBody, PaymentError, requireAdmin } from "@/lib/payment-http";
 import { readText } from "@/lib/order-pricing";
 import { publicOrder, writePayment } from "@/lib/payment-service";
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     requireAdmin(request);
+    const { id } = await params;
     const body = objectBody(await request.json());
     const keys = Object.keys(body);
     if (!keys.length || keys.some((key) => !["status", "carrier", "trackingNumber"].includes(key))) {
@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const carrier = body.carrier == null ? body.carrier : readText(body.carrier, "Transportadora", 120);
     const trackingNumber = body.trackingNumber == null ? body.trackingNumber : readText(body.trackingNumber, "Guía", 120);
     const updated = await writePayment(async (db) => {
-      const order = await db.order.findUnique({ where: { id: params.id } });
+      const order = await db.order.findUnique({ where: { id } });
       if (!order) throw new PaymentError(404, "Pedido no encontrado");
       const next = order.status === "PAGADO" ? "ENVIADO" : order.status === "ENVIADO" ? "ENTREGADO" : null;
       if (order.paymentStatus !== "APPROVED" || (status && status !== next)) {
