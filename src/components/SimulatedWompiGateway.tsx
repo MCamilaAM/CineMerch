@@ -14,9 +14,8 @@ export interface PaymentAttempt {
 
 const scenarios = {
   APPROVED: "Aprobar",
-  DECLINED: "Rechazar",
+  DECLINED: "Cancelar",
   PENDING: "Dejar pendiente",
-  ERROR: "Simular error",
 };
 
 export function PaymentDetails({ transaction }: { transaction: PaymentAttempt }) {
@@ -38,8 +37,7 @@ export default function SimulatedWompiGateway({ transaction, busy, onScenario }:
 }) {
   return (
     <section className="space-y-4 rounded-2xl border border-cine-800 bg-cine-950 p-4">
-      <h4 className="font-serif text-xl font-black text-amber-300">Wompi — Simulación académica</h4>
-      <p className="text-sm">Pago de prueba: no se realizará ningún cobro</p>
+      <h4 className="font-serif text-xl font-black text-amber-300">Wompi</h4>
       <PaymentDetails transaction={transaction} />
       <div className="grid grid-cols-2 gap-2">
         {(Object.keys(scenarios) as (keyof typeof scenarios)[]).map((scenario) => (

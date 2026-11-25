@@ -1,3 +1,4 @@
+import { siteOrigin } from "@/lib/site";
 import type { Metadata } from "next";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
@@ -8,7 +9,11 @@ import Navbar from "@/components/Navbar";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
 
+const origin = siteOrigin();
+
 export const metadata: Metadata = {
+  metadataBase: origin ? new URL(origin) : undefined,
+  robots: origin ? undefined : { index: false, follow: false },
   title: "CineMerch | Tienda Especializada en Ediciones Físicas y Merchandising de Cine",
   description:
     "CineMerch: Catálogo curado en 4K Ultra HD, Steelbooks exclusivos, kits temáticos y figuras oficiales en Cartagena y Colombia. Sincronizado con TMDB, simulación académica de Wompi y Google Analytics 4.",
@@ -31,9 +36,6 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="bg-parchment-50 text-zinc-900 antialiased selection:bg-cine-700 selection:text-white min-h-screen flex flex-col">
-        {/* Google Analytics 4 Script */}
-        <GoogleAnalytics />
-
         <CartProvider>
           {/* Top Navbar */}
           <Navbar />
@@ -52,6 +54,7 @@ export default function RootLayout({
 
           {/* Real-time GA4 Event Inspector & Debugger for testing & presentation */}
           <AnalyticsDebugger />
+          <GoogleAnalytics />
         </CartProvider>
       </body>
     </html>

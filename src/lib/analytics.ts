@@ -1,6 +1,42 @@
 // Google Analytics 4 (GA4) Tracker for CineMerch
 
-export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || "G-CINEMERCH2026";
+const configuredId = process.env.NEXT_PUBLIC_GA_ID ?? "";
+export const GA_MEASUREMENT_ID = /^G-[A-Z0-9]+$/.test(configuredId) && configuredId !== "G-CINEMERCH2026" ? configuredId : "";
+export const analyticsPreference = "cinemerch_analytics_consent";
+export const analyticsPreferenceEvent = "cinemerch:analytics_consent";
+
+export function analyticsAllowed() {
+  return typeof window !== "undefined" && localStorage.getItem(analyticsPreference) === "granted";
+}
+
+const sources: Readonly<Record<string, readonly string[]>> = {
+  instagram: ["social"],
+  tiktok: ["social"],
+  whatsapp: ["messaging"],
+  email: ["email"],
+  google: ["cpc", "organic"],
+};
+
+function campaignAttribution() {
+  if (typeof window === "undefined") return {};
+  const params = new URLSearchParams(window.location.search);
+  const source = params.get("utm_source")?.toLowerCase();
+  const medium = params.get("utm_medium")?.toLowerCase();
+  if (source && medium && Object.prototype.hasOwnProperty.call(sources, source) && sources[source].includes(medium)) {
+    const attribution = {
+      campaign_source: source,
+      campaign_medium: medium,
+      campaign_name: params.get("utm_campaign") === "primeros_100" ? "primeros_100" : "cinemerch",
+    };
+    sessionStorage.setItem("cinemerch_campaign", JSON.stringify(attribution));
+    return attribution;
+  }
+  try {
+    return JSON.parse(sessionStorage.getItem("cinemerch_campaign") || "{}");
+  } catch {
+    return {};
+  }
+}
 
 export interface GAEventItem {
   item_id: string;
@@ -30,14 +66,19 @@ declare global {
 export function trackGAEvent(eventName: string, params: GAEventPayload = {}) {
   const timestamp = new Date().toLocaleTimeString();
   const enhancedParams = {
+    ...campaignAttribution(),
     ...params,
     event_timestamp: timestamp,
   };
 
   // 1. Dispatch to official Google gtag if available
-  if (typeof window !== "undefined" && typeof window.gtag === "function") {
+  if (typeof window !== "undefined" && typeof window.gtag === "function" && analyticsAllowed() && !window.location.pathname.startsWith("/admin")) {
     try {
-      window.gtag("event", eventName, enhancedParams);
+      window.gtag("event", eventName, {
+        ...enhancedParams,
+        page_location: window.location.origin + window.location.pathname,
+        page_referrer: "",
+      });
     } catch (e) {
       console.warn("[GA4] Error pushing to window.gtag:", e);
     }
@@ -65,7 +106,7 @@ export function trackGAEvent(eventName: string, params: GAEventPayload = {}) {
 
 export function trackPageView(url: string, title?: string) {
   trackGAEvent("page_view", {
-    page_location: url,
+    page_location: typeof window === "undefined" ? url : window.location.origin + url,
     page_title: title || (typeof document !== "undefined" ? document.title : ""),
   });
 }
@@ -157,21 +198,12 @@ export function trackPurchase(order: {
     value: order.value,
     shipping: order.shipping,
     tax: order.tax,
-    coupon: order.coupon || "NONE",
+    ...(order.coupon && ["CINE10", "CINEMERCH10", "PREVENTA10"].includes(order.coupon) ? { coupon: order.coupon } : {}),
     payment_type: order.payment_type,
     items: order.items,
   });
 }
 
-export function trackLeadCapture(lead: {
-  email: string;
-  campaign: string;
-  coupon_code: string;
-}) {
-  trackGAEvent("lead_capture", {
-    lead_type: "waitlist_primeros_100",
-    campaign: lead.campaign,
-    coupon_code: lead.coupon_code,
-    user_email_domain: lead.email.split("@")[1] || "unknown",
-  });
+export function trackLeadCapture() {
+  trackGAEvent("generate_lead", { lead_type: "waitlist_primeros_100" });
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { privacyVersion, termsVersion } from "@/lib/store-policy";
 import confetti from "canvas-confetti";
 import { X, ShieldCheck } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -60,6 +62,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
   const [delivery, setDelivery] = useState({ customerName: "", customerEmail: "", customerPhone: "", city: "Cartagena", address: "" });
   const [method, setMethod] = useState<keyof typeof paymentMethods>("WOMPI_NEQUI");
   const [payment, setPayment] = useState<SavedPayment | null>(null);
+  const [accepted, setAccepted] = useState(false);
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -80,6 +83,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
     setError("");
     setStep(1);
     setVerified(false);
+    setAccepted(false);
     setPayment(null);
     if (!recover) return;
     try {
@@ -177,6 +181,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...delivery, department, checkoutIdempotencyKey,
+          privacyVersion: accepted ? privacyVersion : undefined, termsVersion: accepted ? termsVersion : undefined,
           paymentMethod: method, deliveryMethod: method === "CONTRAENTREGA" ? "CONTRAENTREGA_LOCAL" : "ENVIO_NACIONAL",
           items: items.map(({ id, quantity }) => ({ id, quantity })), couponCode: appliedCoupon, pointsRedeemed: 0,
         }),
@@ -263,8 +268,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
 
           {step === 2 && (
             <section className="space-y-3">
-              <h4 className="font-serif text-lg font-bold">Wompi — Simulación académica</h4>
-              <p className="text-sm">Pago de prueba: no se realizará ningún cobro</p>
+              <h4 className="font-serif text-lg font-bold">Wompi</h4>
               <p className="text-sm text-zinc-400">Los métodos Wompi son demostrativos y funcionan sin conexión bancaria.</p>
               <fieldset className="grid grid-cols-2 gap-2" disabled={busy}>
                 <legend className="mb-2 text-sm font-semibold">Método</legend>
@@ -275,9 +279,14 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
                   </label>
                 ))}
               </fieldset>
+              <p className="text-sm">Total estimado con envío {money(estimatedTotal)}. El servidor confirma el importe antes de simular el pago.</p>
+              <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
+                <span>Autorizo el tratamiento de mis datos para registrar este pedido de prueba conforme a la <Link href="/privacidad" target="_blank" className="underline">política de datos</Link> y acepto las <Link href="/condiciones" target="_blank" className="underline">condiciones de la demo</Link>.</span>
+              </label>
               <div className="flex flex-wrap gap-3">
                 <button disabled={busy} onClick={() => setStep(1)} className="px-2 text-sm underline">Volver</button>
-                <button disabled={busy} onClick={createOrder} className={button}>{busy ? "Registrando…" : "Registrar pedido"}</button>
+                <button disabled={busy || !accepted} onClick={createOrder} className={button}>{busy ? "Registrando…" : "Registrar pedido"}</button>
               </div>
             </section>
           )}

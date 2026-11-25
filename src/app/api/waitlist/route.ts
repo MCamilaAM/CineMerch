@@ -1,4 +1,5 @@
-import { hasAdminAccess } from "@/lib/payment-http";
+import { privacyVersion } from "@/lib/store-policy";
+import { failure, objectBody, PaymentError, hasAdminAccess } from "@/lib/payment-http";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -32,17 +33,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = objectBody(await request.json());
     const { fullName, email, phone } = body;
 
-    if (!fullName || !email || !phone) {
-      return NextResponse.json(
-        { success: false, error: "Por favor completa todos los campos (nombre, correo y WhatsApp)." },
-        { status: 400 }
-      );
+    if (body.privacyVersion !== privacyVersion) {
+      throw new PaymentError(400, "Autoriza el tratamiento de datos para registrar tu interés.");
+    }
+    if (typeof fullName !== "string" || !fullName.trim() || fullName.length > 120 ||
+        typeof email !== "string" || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+        typeof phone !== "string" || phone.length > 30 || !/^\+?[\d ()-]{7,30}$/.test(phone.trim()) ||
+        !/^\d{7,15}$/.test(phone.replace(/\D/g, ""))) {
+      throw new PaymentError(400, "Verifica el nombre, correo y teléfono.");
     }
 
-    // Check if email already registered
+    // Preserve existing registrations without recording a new consent as a side effect.
     const existing = await prisma.waitlistLead.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
@@ -61,13 +65,15 @@ export async function POST(request: NextRequest) {
     const suffix = String(currentCount + 1).padStart(3, "0");
     const couponCode = `CINEMERCH10-${suffix}`;
 
-    const lead = await prisma.waitlistLead.create({
+    await prisma.waitlistLead.create({
       data: {
         fullName: fullName.trim(),
         email: email.toLowerCase().trim(),
         phone: phone.trim(),
         couponCode,
         discountPercent: 10,
+        privacyAcceptedAt: new Date(),
+        privacyVersion,
       },
     });
 
@@ -76,16 +82,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      lead,
       couponCode,
       remainingSpots,
       message: "¡Registro exitoso! Disfruta de tu bono del 10% en preventas y catálogo.",
     });
   } catch (error) {
-    console.error("Error creating waitlist lead:", error);
-    return NextResponse.json(
-      { success: false, error: "Error al registrar en la lista de espera" },
-      { status: 500 }
-    );
+    return failure(error);
   }
 }

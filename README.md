@@ -2,6 +2,12 @@
 
 Tienda de ediciones físicas y coleccionables con Next.js, Prisma y SQLite. Wompi funciona como simulación académica, sin cobros ni conexiones bancarias.
 
+## Entrega académica
+
+Consulta la [matriz de requisitos, el backlog y el guion de sustentación](docs/evidencia-entrega.md). La tienda incluye política de datos y condiciones en el pie de página. El registro de interés y los pedidos nuevos requieren aceptar el tratamiento de datos. Actualiza el esquema con el procedimiento de respaldo antes de probar los formularios.
+
+El monitor local funciona sin credenciales. Configura una propiedad propia en `NEXT_PUBLIC_GA_ID` para habilitar la opción de envío a GA4 en la página de privacidad. Usa `NEXT_PUBLIC_SITE_URL` solo para un origen HTTPS autorizado y configura los enlaces sociales oficiales en las variables de `.env.example`.
+
 ## Preparación local
 
 1. Ejecuta `npm install`.
@@ -51,7 +57,7 @@ Los importes de transacciones se devuelven como cadenas de centavos COP. Para la
 
 ## Verificación
 
-`npm run test:payments` crea una base aislada en `work/`, aplica el esquema, ejecuta las pruebas y elimina su propia carpeta temporal. En Windows pasaron los 12 grupos. La actualización de SQLite generó un respaldo y conservó las filas históricas de pedidos, productos, reseñas y leads. Los nuevos defaults de pedido son `PENDING` y `PENDIENTE`.
+`npm run test:payments` crea una base aislada en `work/`, aplica el esquema, ejecuta las pruebas y elimina su propia carpeta temporal. En Windows pasaron los 13 grupos, incluido el registro de autorización. La actualización de SQLite generó un respaldo y conservó las filas históricas de pedidos, productos, reseñas y leads. Los nuevos defaults de pedido son `PENDING` y `PENDIENTE`.
 
 El flujo móvil a 390 × 844 confirmó que un PSE pendiente se recupera tras recargar, que el reintento mantiene el número de pedido y que la aprobación muestra la proforma y vacía el carrito. La consola no registró errores durante el recorrido.
 

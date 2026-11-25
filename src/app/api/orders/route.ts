@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { failure, objectBody, PaymentError, requireAdmin, requireDemo } from "@/lib/payment-http";
+import { privacyVersion, termsVersion } from "@/lib/store-policy";
 import { parseCheckout, priceOrder } from "@/lib/order-pricing";
 import { latestAttempt, newAttempt, publicOrder, serializeTransaction, writePayment } from "@/lib/payment-service";
 
@@ -51,9 +52,13 @@ export async function POST(request: NextRequest) {
           if (existing.paymentMethod !== "CONTRAENTREGA") requireDemo();
           return existing;
         }
+        if (body.privacyVersion !== privacyVersion || body.termsVersion !== termsVersion) {
+          throw new PaymentError(400, "Autoriza el tratamiento de datos y acepta las condiciones de la compra de prueba.");
+        }
         const price = await priceOrder(db, checkout);
         const orderData = {
           ...checkout.customer, ...price, checkoutIdempotencyKey: key,
+          privacyAcceptedAt: new Date(), privacyVersion, termsVersion,
           orderNumber: `CNM-${new Date().getFullYear()}-${randomUUID()}`,
           paymentAccessToken: randomBytes(32).toString("hex"),
         };

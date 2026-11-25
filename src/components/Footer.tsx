@@ -2,7 +2,23 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Film, ShieldCheck, Heart, Award, Disc } from "lucide-react";
+
+const channels = [
+  { label: "Instagram", url: process.env.NEXT_PUBLIC_INSTAGRAM_URL, hosts: ["instagram.com", "www.instagram.com"] },
+  { label: "TikTok", url: process.env.NEXT_PUBLIC_TIKTOK_URL, hosts: ["tiktok.com", "www.tiktok.com"] },
+  { label: "WhatsApp", url: process.env.NEXT_PUBLIC_WHATSAPP_URL, hosts: ["whatsapp.com", "www.whatsapp.com", "wa.me", "chat.whatsapp.com"] },
+].flatMap(({ label, url, hosts }) => {
+  if (!url) return [];
+  try {
+    const target = new URL(url);
+    return target.protocol === "https:" && hosts.includes(target.hostname) && target.pathname !== "/"
+      ? [{ label, href: target.href }] : [];
+  } catch {
+    return [];
+  }
+});
 
 export default function Footer() {
   return (
@@ -88,44 +104,40 @@ export default function Footer() {
               </li>
               <li>
                 <span className="text-zinc-600">
-                  Rastreo Coordinadora / Inter Rapidísimo
+                  Rastreo Coordinadora / <a href="https://interrapidisimo.com/" className="hover:underline">Inter Rapidísimo</a>
                 </span>
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-serif font-black text-cine-900 mb-3 text-sm">
-              Síguenos en Redes
-            </h4>
-            <ul className="space-y-2 text-zinc-600 font-light">
-              <li>
-                <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:text-cine-800 transition-colors">
-                  Instagram (@CineMerchCO)
-                </a>
-              </li>
-              <li>
-                <a href="https://tiktok.com" target="_blank" rel="noreferrer" className="hover:text-cine-800 transition-colors">
-                  TikTok (@CineMerchOficial)
-                </a>
-              </li>
-              <li>
-                <a href="https://whatsapp.com" target="_blank" rel="noreferrer" className="hover:text-cine-800 transition-colors">
-                  Canal de Preventas WhatsApp
-                </a>
-              </li>
+            <h4 className="mb-3 font-serif text-sm font-black text-cine-900">Información de la tienda</h4>
+            <ul className="space-y-2 text-zinc-600">
+              <li><Link className="hover:underline" href="/privacidad">Política de datos y analítica</Link></li>
+              <li><Link className="hover:underline" href="/condiciones">Condiciones de compra de prueba</Link></li>
+              <li><a className="hover:underline" href="https://sedeelectronica.sic.gov.co/">Protección al consumidor · SIC</a></li>
             </ul>
+            {channels.length > 0 && (
+              <ul className="mt-3 space-y-2 text-zinc-600" aria-label="Canales de CineMerch">
+                {channels.map(({ label, href }) => <li key={label}><a className="hover:underline" href={href} target="_blank" rel="noreferrer">{label}</a></li>)}
+              </ul>
+            )}
           </div>
         </div>
 
         {/* Giant Bold Brand Logo - Matching the iconic photo element with cinema ornaments */}
         <div className="pt-8 pb-6 border-t border-parchment-200 text-center overflow-hidden relative">
-          <div className="inline-flex items-center justify-center gap-3 relative">
-            <span className="text-2xl sm:text-4xl text-amber-500/80">🎬</span>
+          <div className="inline-flex flex-col items-center justify-center gap-4 relative">
+            <Image
+              src="/cinemerch-logo-transparent.png"
+              alt="Logo de CineMerch"
+              width={1410}
+              height={1116}
+              className="h-auto w-28 sm:w-36"
+            />
             <h2 className="text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] font-serif font-black text-cine-900 tracking-tighter leading-none select-none hover:text-cine-800 transition-colors">
               CineMerch
             </h2>
-            <span className="text-2xl sm:text-4xl text-amber-500/80">🎞️</span>
           </div>
           <p className="text-xs uppercase tracking-widest text-zinc-500 font-bold mt-2">
             Cartagena de Indias • Ediciones de Colección & Merch Oficial

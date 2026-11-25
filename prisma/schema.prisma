@@ -17,6 +17,8 @@ model WaitlistLead {
   phone           String
   couponCode      String   @unique
   discountPercent Int      @default(10)
+  privacyAcceptedAt DateTime?
+  privacyVersion String?
   isRedeemed      Boolean  @default(false)
   createdAt       DateTime @default(now())
 }
@@ -75,6 +77,9 @@ model Order {
   checkoutIdempotencyKey String? @unique
   paymentAccessToken String? @unique
   paidAt DateTime?
+  privacyAcceptedAt DateTime?
+  privacyVersion String?
+  termsVersion String?
   transactions PaymentTransaction[]
   itemsJson       String   // Array of { productId, title, price, quantity, format, posterUrl }
   createdAt       DateTime @default(now())

@@ -9,9 +9,10 @@ import { GET as status } from "../src/app/api/orders/[id]/payment-status/route";
 import { POST as simulate } from "../src/app/api/wompi/simulate/route";
 import { POST as webhook } from "../src/app/api/wompi/webhook/route";
 import { POST as createProduct } from "../src/app/api/products/route";
-import { GET as waitlist } from "../src/app/api/waitlist/route";
+import { GET as waitlist, POST as register } from "../src/app/api/waitlist/route";
 import { prisma } from "../src/lib/prisma";
 import { checksum, signSimulation, type PaymentState } from "../src/lib/wompi";
+import { privacyVersion, termsVersion } from "../src/lib/store-policy";
 import { seedAccessories } from "../prisma/seed-accessories";
 
 const product = "prod-demo";
@@ -21,7 +22,7 @@ const valid = {
   customerName: "Cliente demo", customerEmail: "demo@example.test", customerPhone: "3000000000",
   city: "Cartagena", department: "Bolívar", address: "Dirección de prueba",
   deliveryMethod: "ENVIO_NACIONAL", paymentMethod: "WOMPI_NEQUI",
-  items: [{ id: product, quantity: 1 }], pointsRedeemed: 0,
+  items: [{ id: product, quantity: 1 }], pointsRedeemed: 0, privacyVersion, termsVersion,
 };
 
 function request(method: string, body?: unknown, token?: string, headers?: Record<string, string>) {
@@ -76,6 +77,10 @@ test("1. Registro pendiente, precio autoritativo, cupón e idempotencia", async 
   assert.equal(data.order.status, "PENDIENTE");
   assert.equal(data.order.paymentStatus, "PENDING");
   assert.equal(data.order.pointsEarned, 0);
+  const saved = await prisma.order.findUniqueOrThrow({ where: { id: data.order.id } });
+  assert.equal(saved.privacyVersion, privacyVersion);
+  assert.equal(saved.termsVersion, termsVersion);
+  assert.ok(saved.privacyAcceptedAt);
   assert.equal(data.order.trackingNumber, null);
   assert.equal(data.order.checkoutIdempotencyKey, undefined);
   assert.equal(data.transaction.amountInCents, "9800000");
@@ -169,7 +174,7 @@ test("6. Contraentrega únicamente en Cartagena, Bolívar", async () => {
 
 test("7. Valida datos, cantidades, puntos y cupones e ignora precios cliente", async () => {
   for (const invalid of [
-    { address: "" }, { pointsRedeemed: 1 }, { couponCode: "CINEMERCH10-inventado" },
+    { privacyVersion: undefined }, { termsVersion: "vencida" }, { address: "" }, { pointsRedeemed: 1 }, { couponCode: "CINEMERCH10-inventado" },
     { paymentMethod: "WOMPI_INVALID" }, { items: [{ id: "missing", quantity: 1 }] },
     { items: [{ id: product, quantity: 1.5 }] }, { items: [{ id: product, quantity: 0 }] },
     { items: [{ id: product, quantity: 51 }, { id: product, quantity: 50 }] },
@@ -256,4 +261,19 @@ test("12. Dos registros simultáneos con la misma clave crean una sola orden", a
   assert.equal(a.order.id, b.order.id);
   assert.equal(a.transaction.id, b.transaction.id);
   assert.equal(await prisma.order.count({ where: { checkoutIdempotencyKey: key } }), 1);
+});
+
+test("13. La lista de espera exige y registra la autorización vigente", async () => {
+  const lead = { fullName: "Cliente ficticio", email: "privacy@example.test", phone: "3000000000" };
+  assert.equal((await register(request("POST", lead))).status, 400);
+  assert.equal((await register(request("POST", { ...lead, privacyVersion: "vencida" }))).status, 400);
+  assert.equal(await prisma.waitlistLead.count({ where: { email: lead.email } }), 0);
+  const accepted = await register(request("POST", { ...lead, privacyVersion }));
+  assert.equal(accepted.status, 200);
+  const receipt = await accepted.json();
+  assert.ok(receipt.couponCode);
+  assert.equal(receipt.lead, undefined);
+  const saved = await prisma.waitlistLead.findUniqueOrThrow({ where: { email: lead.email } });
+  assert.equal(saved.privacyVersion, privacyVersion);
+  assert.ok(saved.privacyAcceptedAt);
 });

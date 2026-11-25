@@ -1,14 +1,17 @@
 "use client";
 
+import Link from "next/link";
+import { privacyVersion } from "@/lib/store-policy";
 import React, { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
-import { Sparkles, Ticket, CheckCircle2, ArrowRight, ShieldCheck, Phone, Mail, User } from "lucide-react";
+import { Sparkles, Ticket, CheckCircle2, ArrowRight, Phone, Mail, User } from "lucide-react";
 import { trackLeadCapture } from "@/lib/analytics";
 import { useCart } from "@/context/CartContext";
 import { FilmReelDecoration, GoldenTicketDecoration, ClapperboardDecoration } from "@/components/CinemaDecorations";
 
 export default function WaitlistBanner() {
   const { applyCoupon } = useCart();
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -46,7 +49,7 @@ export default function WaitlistBanner() {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email, phone }),
+        body: JSON.stringify({ fullName, email, phone, privacyVersion: privacyAccepted ? privacyVersion : undefined }),
       });
       const data = await res.json();
 
@@ -55,11 +58,7 @@ export default function WaitlistBanner() {
         if (data.remainingSpots !== undefined) setRemainingSpots(data.remainingSpots);
 
         // Fire GA4 Event for Marketing / Conversion tracking (US-04)
-        trackLeadCapture({
-          email,
-          campaign: "Primeros 100 Cinéfilos",
-          coupon_code: data.couponCode,
-        });
+        if (!data.alreadyRegistered) trackLeadCapture();
 
         // Trigger Confetti!
         confetti({
@@ -82,7 +81,7 @@ export default function WaitlistBanner() {
   };
 
   return (
-    <section className="py-16 px-4 sm:px-8 bg-parchment-50 relative z-10 overflow-hidden">
+    <section id="primeros-100" className="py-16 px-4 sm:px-8 bg-parchment-50 relative z-10 overflow-hidden">
       <div className="max-w-6xl mx-auto relative">
         {/* Deep Red Card matching the bottom banner of the reference image */}
         <div className="bg-gradient-to-r from-cine-950 via-cine-900 to-cine-950 rounded-4xl p-8 sm:p-14 text-white relative overflow-hidden shadow-2xl border border-cine-800">
@@ -133,7 +132,7 @@ export default function WaitlistBanner() {
                   </span>
                 </div>
                 <p className="text-[11px] text-zinc-400 mt-2">
-                  (Válido para tu primera compra de steelbooks, 4K UHD o kits temáticos).
+                  Descuento de bienvenida en el catálogo de prueba.
                 </p>
               </div>
             ) : (
@@ -180,7 +179,11 @@ export default function WaitlistBanner() {
                   <p className="text-xs text-rose-300 font-medium">{errorMsg}</p>
                 )}
 
-                <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+                <label className="flex items-start gap-2 text-xs text-zinc-200">
+                  <input required type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} />
+                  <span>Autorizo el uso de mis datos para registrar mi interés y asignar mi cupón según la <Link href="/privacidad" target="_blank" className="underline">política de tratamiento</Link>. Usa datos ficticios en esta demo.</span>
+                </label>
+                <div className="flex flex-col items-center gap-3 pt-1 sm:flex-row">
                   <button
                     type="submit"
                     disabled={loading}
@@ -189,11 +192,6 @@ export default function WaitlistBanner() {
                     <span>{loading ? "Registrando..." : "Reclamar mi Bono del 10%"}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
-
-                  <span className="text-[11px] text-zinc-400 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    Cero spam. Solo cinefilia pura y avisos de preventas.
-                  </span>
                 </div>
               </form>
             )}
