@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Activity, CheckCircle2, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { GA_MEASUREMENT_ID } from "@/lib/analytics";
+import { adminTokenChangedEvent, adminTokenKey, verifyAdminAccess } from "@/lib/admin-access";
 
 interface CapturedEvent {
   id: string;
@@ -15,6 +16,59 @@ export default function AnalyticsDebugger() {
   const [events, setEvents] = useState<CapturedEvent[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CapturedEvent | null>(null);
+  const [canClear, setCanClear] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [clearError, setClearError] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) {
+      setCanClear(false);
+      return;
+    }
+    let controller: AbortController | undefined;
+    const refreshAccess = () => {
+      controller?.abort();
+      controller = new AbortController();
+      const signal = controller.signal;
+      setCanClear(false);
+      const token = sessionStorage.getItem(adminTokenKey) || "";
+      void verifyAdminAccess(token, signal)
+        .then((authorized) => {
+          if (!signal.aborted && sessionStorage.getItem(adminTokenKey) === token) setCanClear(authorized);
+        })
+        .catch(() => {});
+    };
+    refreshAccess();
+    window.addEventListener(adminTokenChangedEvent, refreshAccess);
+    window.addEventListener("storage", refreshAccess);
+    window.addEventListener("focus", refreshAccess);
+    return () => {
+      controller?.abort();
+      window.removeEventListener(adminTokenChangedEvent, refreshAccess);
+      window.removeEventListener("storage", refreshAccess);
+      window.removeEventListener("focus", refreshAccess);
+    };
+  }, [isOpen]);
+
+  async function clearEvents() {
+    if (!canClear || isClearing) return;
+    setIsClearing(true);
+    setClearError("");
+    try {
+      const token = sessionStorage.getItem(adminTokenKey) || "";
+      const authorized = await verifyAdminAccess(token);
+      if (!authorized || sessionStorage.getItem(adminTokenKey) !== token) {
+        throw new Error("Acceso administrativo requerido");
+      }
+      setEvents([]);
+      setSelectedEvent(null);
+    } catch {
+      setCanClear(false);
+      setClearError("No se pudo verificar el acceso administrativo. Los eventos se conservaron.");
+    } finally {
+      setIsClearing(false);
+    }
+  }
 
   useEffect(() => {
     const handleCustomGAEvent = (e: Event) => {
@@ -68,13 +122,15 @@ export default function AnalyticsDebugger() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setEvents([])}
-                className="text-zinc-400 hover:text-red-400 p-1"
+              {canClear && <button
+                onClick={() => void clearEvents()}
+                disabled={isClearing}
+                className="text-zinc-400 hover:text-red-400 p-1 disabled:opacity-50"
                 title="Limpiar registro"
+                aria-label="Limpiar registro"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              </button>}
               <button
                 onClick={() => setIsOpen(false)}
                 className="text-zinc-400 hover:text-white px-2 py-0.5 rounded text-xs bg-zinc-800"
@@ -84,6 +140,7 @@ export default function AnalyticsDebugger() {
             </div>
           </div>
 
+          {clearError && <p role="alert" className="px-3 py-2 text-[11px] text-amber-300">{clearError}</p>}
           <div className="grid grid-cols-3 gap-2 border-b border-zinc-800 p-3 text-[10px]">
             {([["generate_lead", "Registros"], ["begin_checkout", "Checkouts"], ["purchase", "Aprobados"]] as const).map(([name, label]) => (
               <span key={name}>{label} <strong className="text-amber-300">{events.filter((event) => event.eventName === name).length}</strong></span>

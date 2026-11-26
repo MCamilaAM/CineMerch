@@ -8,6 +8,8 @@ Consulta la [matriz de requisitos, el backlog y el guion de sustentación](docs/
 
 El monitor local funciona sin credenciales. Configura una propiedad propia en `NEXT_PUBLIC_GA_ID` para habilitar la opción de envío a GA4 en la página de privacidad. Usa `NEXT_PUBLIC_SITE_URL` solo para un origen HTTPS autorizado y configura los enlaces sociales oficiales en las variables de `.env.example`.
 
+La limpieza del monitor está disponible únicamente después de aplicar un token administrativo válido en `/admin`. El servidor valida el token al mostrar el botón y vuelve a validarlo antes de limpiar. Si falta autorización o falla la consulta, los eventos se conservan. La limpieza afecta solo los eventos en memoria de esa página; no modifica pedidos, SQLite ni GA4.
+
 ## Preparación local
 
 1. Usa Node.js 24 y ejecuta `npm ci`. El cliente Prisma se genera automáticamente.
@@ -36,6 +38,7 @@ En `/admin`, aplica el valor local de `ADMIN_ACCESS_TOKEN`. El navegador lo guar
 
 | Ruta | Acceso | Comportamiento |
 | --- | --- | --- |
+| `GET /api/admin/access` | Bearer administrativo | Verifica el token sin devolver datos personales ni permitir caché. |
 | `POST /api/orders` | Público, con UUID privado por checkout | Recibe entrega, método, IDs, cantidades y cupón. Calcula importes del catálogo y devuelve la orden, su token y el primer intento, si aplica. |
 | `GET /api/orders` | Bearer administrativo | Lista pedidos con su último intento. |
 | `PATCH /api/orders/:id` | Bearer administrativo | Admite `status`, `carrier` y `trackingNumber` para logística de pedidos aprobados. |

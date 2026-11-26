@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { adminTokenChangedEvent, adminTokenKey } from "@/lib/admin-access";
 import {
   TrendingUp,
   Package,
@@ -87,7 +88,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("cinemerch_admin_token") || "";
+    const saved = sessionStorage.getItem(adminTokenKey) || "";
     setToken(saved);
     void fetchData(saved);
   }, [fetchData]);
@@ -242,8 +243,9 @@ export default function AdminPage() {
         <form className="flex flex-wrap items-end gap-2 px-4 pb-3" onSubmit={(event) => {
         event.preventDefault();
         const value = tokenInput.trim();
-        if (value) sessionStorage.setItem("cinemerch_admin_token", value);
-        else sessionStorage.removeItem("cinemerch_admin_token");
+        if (value) sessionStorage.setItem(adminTokenKey, value);
+        else sessionStorage.removeItem(adminTokenKey);
+        window.dispatchEvent(new Event(adminTokenChangedEvent));
         setOrders([]);
         setLeads([]);
         setToken(value);

@@ -14,6 +14,7 @@ import { prisma } from "../src/lib/prisma";
 import { checksum, signSimulation, type PaymentState } from "../src/lib/wompi";
 import { privacyVersion, termsVersion } from "../src/lib/store-policy";
 import { seedAccessories } from "../prisma/seed-accessories";
+import { GET as adminAccess } from "../src/app/api/admin/access/route";
 
 const product = "prod-demo";
 const second = "prod-demo-second";
@@ -65,6 +66,29 @@ before(async () => {
 });
 
 after(() => prisma.$disconnect());
+
+test("El monitor solo autoriza administradores válidos y revalida tokens sin caché", async () => {
+  for (const token of [undefined, "token-invalido", " "]) {
+    const response = await adminAccess(request("GET", undefined, token));
+    assert.equal(response.status, 401);
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+  }
+  const verified = await adminAccess(request("GET", undefined, admin));
+  assert.equal(verified.status, 200);
+  assert.equal(verified.headers.get("Cache-Control"), "no-store");
+  assert.deepEqual(await verified.json(), { success: true });
+  const original = process.env.ADMIN_ACCESS_TOKEN;
+  try {
+    process.env.ADMIN_ACCESS_TOKEN = randomUUID();
+    assert.equal((await adminAccess(request("GET", undefined, admin))).status, 401);
+    delete process.env.ADMIN_ACCESS_TOKEN;
+    assert.equal((await adminAccess(request("GET", undefined, admin))).status, 401);
+    process.env.ADMIN_ACCESS_TOKEN = "reemplazar-con-secreto-de-al-menos-32-caracteres";
+    assert.equal((await adminAccess(request("GET", undefined, process.env.ADMIN_ACCESS_TOKEN))).status, 401);
+  } finally {
+    process.env.ADMIN_ACCESS_TOKEN = original;
+  }
+});
 
 test("1. Registro pendiente, precio autoritativo, cupón e idempotencia", async () => {
   const key = randomUUID();
