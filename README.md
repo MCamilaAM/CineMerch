@@ -6,9 +6,9 @@ Tienda de ediciones físicas y coleccionables con Next.js, Prisma y SQLite. Womp
 
 Consulta la [matriz de requisitos, el backlog y el guion de sustentación](docs/evidencia-entrega.md). La tienda incluye política de datos y condiciones en el pie de página. El registro de interés y los pedidos nuevos requieren aceptar el tratamiento de datos. Actualiza el esquema con el procedimiento de respaldo antes de probar los formularios.
 
-El monitor local funciona sin credenciales. Configura una propiedad propia en `NEXT_PUBLIC_GA_ID` para habilitar la opción de envío a GA4 en la página de privacidad. Usa `NEXT_PUBLIC_SITE_URL` solo para un origen HTTPS autorizado y configura los enlaces sociales oficiales en las variables de `.env.example`.
+El monitor local de eventos solo es visible para administradores. Configura una propiedad propia en `NEXT_PUBLIC_GA_ID` para habilitar la opción de envío a GA4 en la página de privacidad. Usa `NEXT_PUBLIC_SITE_URL` solo para un origen HTTPS autorizado y configura los enlaces sociales oficiales en las variables de `.env.example`.
 
-La limpieza del monitor está disponible únicamente después de aplicar un token administrativo válido en `/admin`. El servidor valida el token al mostrar el botón y vuelve a validarlo antes de limpiar. Si falta autorización o falla la consulta, los eventos se conservan. La limpieza afecta solo los eventos en memoria de esa página; no modifica pedidos, SQLite ni GA4.
+El monitor, su botón flotante y la captura local de eventos se habilitan únicamente después de aplicar un token administrativo válido en `/admin`. El servidor valida el token antes de mostrar el monitor y vuelve a validarlo antes de limpiar. Al retirar o invalidar el token, o si falla su verificación, el monitor completo se oculta. La limpieza afecta solo los eventos en memoria de esa página; no modifica pedidos, SQLite ni GA4. La medición de GA4 conserva su comportamiento y su requisito de consentimiento.
 
 ## Preparación local
 
