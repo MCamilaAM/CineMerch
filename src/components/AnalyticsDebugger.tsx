@@ -16,27 +16,28 @@ export default function AnalyticsDebugger() {
   const [events, setEvents] = useState<CapturedEvent[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CapturedEvent | null>(null);
-  const [canClear, setCanClear] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [clearError, setClearError] = useState("");
 
   useEffect(() => {
-    if (!isOpen) {
-      setCanClear(false);
-      return;
-    }
     let controller: AbortController | undefined;
     const refreshAccess = () => {
       controller?.abort();
       controller = new AbortController();
       const signal = controller.signal;
-      setCanClear(false);
+      setIsAdmin(false);
       const token = sessionStorage.getItem(adminTokenKey) || "";
       void verifyAdminAccess(token, signal)
         .then((authorized) => {
-          if (!signal.aborted && sessionStorage.getItem(adminTokenKey) === token) setCanClear(authorized);
+          if (!signal.aborted && (sessionStorage.getItem(adminTokenKey) || "") === token) {
+            setIsAdmin(authorized);
+            if (!authorized) setIsOpen(false);
+          }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (!signal.aborted) setIsOpen(false);
+        });
     };
     refreshAccess();
     window.addEventListener(adminTokenChangedEvent, refreshAccess);
@@ -48,10 +49,10 @@ export default function AnalyticsDebugger() {
       window.removeEventListener("storage", refreshAccess);
       window.removeEventListener("focus", refreshAccess);
     };
-  }, [isOpen]);
+  }, []);
 
   async function clearEvents() {
-    if (!canClear || isClearing) return;
+    if (!isAdmin || isClearing) return;
     setIsClearing(true);
     setClearError("");
     try {
@@ -63,7 +64,7 @@ export default function AnalyticsDebugger() {
       setEvents([]);
       setSelectedEvent(null);
     } catch {
-      setCanClear(false);
+      setIsAdmin(false);
       setClearError("No se pudo verificar el acceso administrativo. Los eventos se conservaron.");
     } finally {
       setIsClearing(false);
@@ -71,6 +72,7 @@ export default function AnalyticsDebugger() {
   }
 
   useEffect(() => {
+    if (!isAdmin) return;
     const handleCustomGAEvent = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (!customEvent.detail) return;
@@ -87,7 +89,9 @@ export default function AnalyticsDebugger() {
     return () => {
       window.removeEventListener("cinemerch:ga_event", handleCustomGAEvent);
     };
-  }, []);
+  }, [isAdmin]);
+
+  if (!isAdmin) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-30 font-sans text-xs">
@@ -122,7 +126,7 @@ export default function AnalyticsDebugger() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {canClear && <button
+              <button
                 onClick={() => void clearEvents()}
                 disabled={isClearing}
                 className="text-zinc-400 hover:text-red-400 p-1 disabled:opacity-50"
@@ -130,7 +134,7 @@ export default function AnalyticsDebugger() {
                 aria-label="Limpiar registro"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-              </button>}
+              </button>
               <button
                 onClick={() => setIsOpen(false)}
                 className="text-zinc-400 hover:text-white px-2 py-0.5 rounded text-xs bg-zinc-800"
