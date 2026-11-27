@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Activity, CheckCircle2, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
-import { GA_MEASUREMENT_ID } from "@/lib/analytics";
+import { externalAnalyticsConfigured } from "@/lib/analytics";
 import { adminTokenChangedEvent, adminTokenKey, verifyAdminAccess } from "@/lib/admin-access";
 
 interface CapturedEvent {
@@ -122,7 +122,7 @@ export default function AnalyticsDebugger() {
               <Activity className="w-4 h-4 text-emerald-400" />
               <div>
                 <h4 className="font-bold text-xs text-white">Embudo de CineMerch</h4>
-                <p className="text-[10px] text-zinc-400 font-mono">{GA_MEASUREMENT_ID ? "GA4 opcional según consentimiento" : "Eventos de esta página"}</p>
+                <p className="text-[10px] text-zinc-400 font-mono">{externalAnalyticsConfigured ? "GA4 opcional según consentimiento" : "Eventos de esta página"}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">

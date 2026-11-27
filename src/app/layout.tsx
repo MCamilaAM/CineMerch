@@ -8,6 +8,7 @@ import ToastContainer from "@/components/ToastContainer";
 import Navbar from "@/components/Navbar";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
+import { googleTagBootstrap } from "@/lib/google-tag";
 
 const origin = siteOrigin();
 
@@ -35,6 +36,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
+      <head>
+        <script id="cinemerch-google-tag-init" dangerouslySetInnerHTML={{ __html: googleTagBootstrap }} />
+      </head>
       <body className="bg-parchment-50 text-zinc-900 antialiased selection:bg-cine-700 selection:text-white min-h-screen flex flex-col">
         <CartProvider>
           {/* Top Navbar */}

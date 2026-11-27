@@ -32,7 +32,7 @@ export default function PrivacyPage() {
       </section>
       <section className="space-y-2">
         <h2 className="text-xl font-bold">Analítica opcional</h2>
-        <p>El monitor registra eventos de la demo en memoria de la página. Si hay una propiedad de Google Analytics 4 configurada y autorizas la medición externa, Google puede recibir interacciones del embudo, el canal de campaña y datos técnicos de uso. CineMerch excluye correo, teléfono, dirección y cupones individuales de los eventos.</p>
+        <p>El monitor administrativo registra eventos de la demo en memoria de la página. Si autorizas la medición externa, las etiquetas de Google Analytics 4 configuradas mediante Google Tag Manager pueden recibir interacciones del embudo, el canal de campaña y datos técnicos de uso. CineMerch excluye correo, teléfono, dirección y cupones individuales de los eventos.</p>
         <AnalyticsPreference />
       </section>
     </article>

@@ -1,19 +1,45 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import Script from "next/script";
-import { GA_MEASUREMENT_ID, analyticsAllowed, analyticsPreferenceEvent, trackPageView } from "@/lib/analytics";
+import {
+  GA_MEASUREMENT_ID, GTM_CONTAINER_ID, externalAnalyticsConfigured, analyticsAllowed,
+  analyticsPreferenceEvent, sendExternalAnalyticsEvent, trackPageView,
+} from "@/lib/analytics";
+import { loadGoogleTag } from "@/lib/google-tag";
 
 export default function GoogleAnalytics() {
   const pathname = usePathname();
-  const [enabled, setEnabled] = useState(false);
-  const [ready, setReady] = useState(false);
+  const lastPath = useRef<string | null>(null);
+  const previouslyAllowed = useRef(false);
+  const configuredDirectGA = useRef(false);
 
   useEffect(() => {
     function update() {
-      const allowed = Boolean(GA_MEASUREMENT_ID) && analyticsAllowed();
-      Reflect.set(window, "ga-disable-" + GA_MEASUREMENT_ID, !allowed);
-      setEnabled(allowed);
+      const publicPage = Boolean(pathname) && !pathname.startsWith("/admin");
+      const allowed = externalAnalyticsConfigured && analyticsAllowed() && publicPage;
+      window.gtag?.("consent", "update", {
+        analytics_storage: allowed ? "granted" : "denied",
+        ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied",
+      });
+      if (GA_MEASUREMENT_ID) Reflect.set(window, "ga-disable-" + GA_MEASUREMENT_ID, !allowed);
+      if (allowed) {
+        if (!GTM_CONTAINER_ID && !configuredDirectGA.current) {
+          window.gtag?.("config", GA_MEASUREMENT_ID, {
+            send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false,
+            page_location: window.location.origin + window.location.pathname, page_referrer: "",
+          });
+          configuredDirectGA.current = true;
+        }
+        loadGoogleTag();
+      }
+      if (pathname !== lastPath.current) {
+        lastPath.current = pathname;
+        if (publicPage) trackPageView(pathname);
+      } else if (allowed && !previouslyAllowed.current) {
+        // Opt-in reports the current page without duplicating its local event.
+        sendExternalAnalyticsEvent("page_view", { page_title: document.title });
+      }
+      previouslyAllowed.current = allowed;
     }
     update();
     window.addEventListener(analyticsPreferenceEvent, update);
@@ -22,30 +48,7 @@ export default function GoogleAnalytics() {
       window.removeEventListener(analyticsPreferenceEvent, update);
       window.removeEventListener("storage", update);
     };
-  }, []);
+  }, [pathname]);
 
-  useEffect(() => {
-    if (pathname && (ready || !enabled) && !pathname.startsWith("/admin")) trackPageView(pathname);
-  }, [pathname, enabled, ready]);
-
-  if (!enabled) return null;
-  return (
-    <Script id="cinemerch-ga4" src={"https://www.googletagmanager.com/gtag/js?id=" + GA_MEASUREMENT_ID}
-      strategy="afterInteractive" onReady={() => {
-        if (!analyticsAllowed()) return;
-        if (!window.gtag) {
-          window.dataLayer = window.dataLayer || [];
-          window.gtag = function () { window.dataLayer?.push(arguments); };
-          window.gtag("js", new Date());
-          window.gtag("config", GA_MEASUREMENT_ID, {
-            send_page_view: false,
-            allow_google_signals: false,
-            allow_ad_personalization_signals: false,
-            page_location: window.location.origin + window.location.pathname,
-            page_referrer: "",
-          });
-        }
-        setReady(true);
-      }} />
-  );
+  return null;
 }
