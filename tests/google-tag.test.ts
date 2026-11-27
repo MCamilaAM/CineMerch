@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { googleTagBootstrap, loadGoogleTag } from "../src/lib/google-tag";
-import { sendExternalAnalyticsEvent, trackPurchase, analyticsPreference, GA_MEASUREMENT_ID } from "../src/lib/analytics";
+import { sendExternalAnalyticsEvent, trackPurchase, analyticsPreference, analyticsAllowed, GA_MEASUREMENT_ID } from "../src/lib/analytics";
 
 function withBrowser(check: (browser: any) => void) {
   const keys = ["window", "document", "localStorage", "sessionStorage"] as const;
@@ -56,8 +56,9 @@ test("el contenedor de la imagen se agrega una sola vez, asíncrono y en head", 
   });
 });
 
-test("no se encolan eventos externos sin consentimiento ni desde admin", () => {
+test("no se envían eventos externos con rechazo guardado ni desde admin", () => {
   withBrowser(({ browser, storage, calls }) => {
+    storage.setItem(analyticsPreference, "denied");
     sendExternalAnalyticsEvent("add_to_cart", { value: 1000 });
     assert.equal(browser.dataLayer.length, 0);
     storage.setItem(analyticsPreference, "granted");
@@ -70,6 +71,35 @@ test("no se encolan eventos externos sin consentimiento ni desde admin", () => {
     assert.equal(browser.dataLayer.length, 0);
     assert.equal(calls.length, 0);
   });
+});
+
+test("la analítica se activa por defecto sin inventar una autorización guardada", () => {
+  withBrowser(({ storage, calls }) => {
+    assert.equal(storage.getItem(analyticsPreference), null);
+    assert.equal(analyticsAllowed(), true);
+    sendExternalAnalyticsEvent("add_to_cart", { value: 1000 });
+    assert.equal(calls.length, 1);
+    assert.equal(storage.getItem(analyticsPreference), null);
+  });
+});
+
+test("las preferencias guardadas conservan prioridad sobre el valor por defecto", () => {
+  withBrowser(({ storage }) => {
+    storage.setItem(analyticsPreference, "denied");
+    assert.equal(analyticsAllowed(), false);
+    storage.setItem(analyticsPreference, "granted");
+    assert.equal(analyticsAllowed(), true);
+    storage.setItem(analyticsPreference, "valor-invalido");
+    assert.equal(analyticsAllowed(), false);
+  });
+});
+
+test("si no se puede leer la preferencia, la analítica permanece desactivada", () => {
+  withBrowser(({ storage }) => {
+    storage.getItem = () => { throw new Error("Almacenamiento no disponible"); };
+    assert.equal(analyticsAllowed(), false);
+  });
+  assert.equal(analyticsAllowed(), false, "No habilitar la analítica en el servidor");
 });
 
 test("los eventos se envían una vez por la API de Google, al destino configurado", () => {

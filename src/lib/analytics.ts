@@ -6,7 +6,14 @@ export const analyticsPreference = "cinemerch_analytics_consent";
 export const analyticsPreferenceEvent = "cinemerch:analytics_consent";
 
 export function analyticsAllowed() {
-  return typeof window !== "undefined" && localStorage.getItem(analyticsPreference) === "granted";
+  if (typeof window === "undefined") return false;
+  try {
+    const preference = localStorage.getItem(analyticsPreference);
+    return preference === null || preference === "granted";
+  } catch {
+    // Do not override a saved rejection if browser storage is unavailable.
+    return false;
+  }
 }
 
 const sources: Readonly<Record<string, readonly string[]>> = {

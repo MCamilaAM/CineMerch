@@ -25,7 +25,7 @@ export default function GoogleAnalytics() {
       if (GA_MEASUREMENT_ID) Reflect.set(window, "ga-disable-" + GA_MEASUREMENT_ID, !allowed);
       if (allowed) {
         if (!started.current) {
-          // Grant consent before initialization so the first pageview is usable.
+          // Apply the analytics preference before initializing the first view.
           window.gtag?.("js", new Date());
           started.current = true;
         }
