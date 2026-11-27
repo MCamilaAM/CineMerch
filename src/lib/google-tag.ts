@@ -16,7 +16,6 @@ gtag('consent', 'default', {
   ad_user_data: 'denied',
   ad_personalization: 'denied'
 });
-gtag('js', new Date());
 `;
 
 export function loadGoogleTag() {

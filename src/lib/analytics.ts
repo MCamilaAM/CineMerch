@@ -65,6 +65,8 @@ declare global {
  */
 export function sendExternalAnalyticsEvent(eventName: string, params: GAEventPayload = {}) {
   if (typeof window !== "undefined" && externalAnalyticsConfigured && analyticsAllowed() && !window.location.pathname.startsWith("/admin")) {
+    // The published GTM destination already measures initial/history pageviews.
+    if (GTM_CONTAINER_ID && eventName === "page_view") return;
     try {
       const payload = {
         ...campaignAttribution(),
@@ -72,12 +74,12 @@ export function sendExternalAnalyticsEvent(eventName: string, params: GAEventPay
         page_location: window.location.origin + window.location.pathname,
         page_referrer: "",
       };
-      if (GTM_CONTAINER_ID) {
-        window.dataLayer = window.dataLayer || [];
-        window.dataLayer.push({ ...payload, event: eventName });
-      } else {
-        window.gtag?.("event", eventName, payload);
-      }
+      // Use the Google event API. A plain GTM custom event requires separate
+      // event tags and was never forwarded by the published destination.
+      window.gtag?.("event", eventName, {
+        ...payload,
+        ...(GA_MEASUREMENT_ID ? { send_to: GA_MEASUREMENT_ID } : {}),
+      });
     } catch (e) {
       console.warn("[GA4] Error pushing to window.gtag:", e);
     }
