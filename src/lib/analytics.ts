@@ -1,7 +1,7 @@
 // Google Analytics 4 (GA4) Tracker for CineMerch
 
-const configuredId = process.env.NEXT_PUBLIC_GA_ID ?? "";
-export const GA_MEASUREMENT_ID = /^G-[A-Z0-9]+$/.test(configuredId) && configuredId !== "G-CINEMERCH2026" ? configuredId : "";
+import { GA_MEASUREMENT_ID, GTM_CONTAINER_ID, externalAnalyticsConfigured } from "./google-tag";
+export { GA_MEASUREMENT_ID, GTM_CONTAINER_ID, externalAnalyticsConfigured };
 export const analyticsPreference = "cinemerch_analytics_consent";
 export const analyticsPreferenceEvent = "cinemerch:analytics_consent";
 
@@ -63,26 +63,31 @@ declare global {
 /**
  * Dispatches an event to GA4 dataLayer and broadcasts to local inspector
  */
-export function trackGAEvent(eventName: string, params: GAEventPayload = {}) {
-  const timestamp = new Date().toLocaleTimeString();
-  const enhancedParams = {
-    ...campaignAttribution(),
-    ...params,
-    event_timestamp: timestamp,
-  };
-
-  // 1. Dispatch to official Google gtag if available
-  if (typeof window !== "undefined" && typeof window.gtag === "function" && analyticsAllowed() && !window.location.pathname.startsWith("/admin")) {
+export function sendExternalAnalyticsEvent(eventName: string, params: GAEventPayload = {}) {
+  if (typeof window !== "undefined" && externalAnalyticsConfigured && analyticsAllowed() && !window.location.pathname.startsWith("/admin")) {
     try {
-      window.gtag("event", eventName, {
-        ...enhancedParams,
+      const payload = {
+        ...campaignAttribution(),
+        ...params,
         page_location: window.location.origin + window.location.pathname,
         page_referrer: "",
-      });
+      };
+      if (GTM_CONTAINER_ID) {
+        window.dataLayer = window.dataLayer || [];
+        window.dataLayer.push({ ...payload, event: eventName });
+      } else {
+        window.gtag?.("event", eventName, payload);
+      }
     } catch (e) {
       console.warn("[GA4] Error pushing to window.gtag:", e);
     }
   }
+}
+
+export function trackGAEvent(eventName: string, params: GAEventPayload = {}) {
+  const timestamp = new Date().toLocaleTimeString();
+  const enhancedParams = { ...campaignAttribution(), ...params, event_timestamp: timestamp };
+  sendExternalAnalyticsEvent(eventName, enhancedParams);
 
   // 2. Dispatch custom browser event for our in-app real-time Analytics Debugger
   if (typeof window !== "undefined") {

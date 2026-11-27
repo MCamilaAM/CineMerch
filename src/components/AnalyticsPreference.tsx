@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { GA_MEASUREMENT_ID, analyticsPreference, analyticsPreferenceEvent, analyticsAllowed } from "@/lib/analytics";
+import { externalAnalyticsConfigured, analyticsPreference, analyticsPreferenceEvent, analyticsAllowed } from "@/lib/analytics";
 
 export default function AnalyticsPreference() {
   const [enabled, setEnabled] = useState(false);
   useEffect(() => setEnabled(analyticsAllowed()), []);
-  if (!GA_MEASUREMENT_ID) return <p>Esta copia usa el monitor local. No hay una propiedad GA4 configurada.</p>;
+  if (!externalAnalyticsConfigured) return <p>Esta copia usa el monitor local. No hay analítica externa configurada.</p>;
   return (
     <label className="flex items-center gap-2">
       <input type="checkbox" checked={enabled} onChange={(event) => {
