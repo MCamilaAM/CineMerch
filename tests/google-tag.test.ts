@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { googleTagBootstrap, loadGoogleTag } from "../src/lib/google-tag";
-import { sendExternalAnalyticsEvent, trackPurchase, analyticsPreference } from "../src/lib/analytics";
+import { sendExternalAnalyticsEvent, trackPurchase, analyticsPreference, analyticsAllowed, GA_MEASUREMENT_ID } from "../src/lib/analytics";
 
 function withBrowser(check: (browser: any) => void) {
   const keys = ["window", "document", "localStorage", "sessionStorage"] as const;
@@ -37,14 +37,13 @@ test("la cabecera inicializa dataLayer y deniega consentimiento antes de iniciar
   const context: any = { Date };
   context.window = context;
   runInNewContext(googleTagBootstrap, context);
-  const [consent, start] = context.dataLayer.map((entry: IArguments) => Array.from(entry));
+  const [consent] = context.dataLayer.map((entry: IArguments) => Array.from(entry));
   assert.deepEqual(consent.slice(0, 2), ["consent", "default"]);
   assert.equal(consent[2].analytics_storage, "denied");
   assert.equal(consent[2].ad_storage, "denied");
   assert.equal(consent[2].ad_user_data, "denied");
   assert.equal(consent[2].ad_personalization, "denied");
-  assert.equal(start[0], "js");
-  assert.ok(start[1] instanceof Date);
+  assert.equal(context.dataLayer.length, 1, "Google no debe iniciarse antes de autorizar");
 });
 
 test("el contenedor de la imagen se agrega una sola vez, asíncrono y en head", () => {
@@ -57,45 +56,87 @@ test("el contenedor de la imagen se agrega una sola vez, asíncrono y en head", 
   });
 });
 
-test("no se encolan eventos externos sin consentimiento ni desde admin", () => {
-  withBrowser(({ browser, storage }) => {
-    sendExternalAnalyticsEvent("page_view");
+test("no se envían eventos externos con rechazo guardado ni desde admin", () => {
+  withBrowser(({ browser, storage, calls }) => {
+    storage.setItem(analyticsPreference, "denied");
+    sendExternalAnalyticsEvent("add_to_cart", { value: 1000 });
     assert.equal(browser.dataLayer.length, 0);
     storage.setItem(analyticsPreference, "granted");
     browser.location.pathname = "/admin";
-    sendExternalAnalyticsEvent("page_view");
+    sendExternalAnalyticsEvent("purchase", { value: 1000 });
     assert.equal(browser.dataLayer.length, 0);
     browser.location.pathname = "/catalogo";
     storage.setItem(analyticsPreference, "denied");
     sendExternalAnalyticsEvent("add_to_cart", { value: 1000 });
     assert.equal(browser.dataLayer.length, 0);
+    assert.equal(calls.length, 0);
   });
 });
 
-test("GTM recibe un único evento y no se duplica mediante gtag", () => {
+test("la analítica se activa por defecto sin inventar una autorización guardada", () => {
+  withBrowser(({ storage, calls }) => {
+    assert.equal(storage.getItem(analyticsPreference), null);
+    assert.equal(analyticsAllowed(), true);
+    sendExternalAnalyticsEvent("add_to_cart", { value: 1000 });
+    assert.equal(calls.length, 1);
+    assert.equal(storage.getItem(analyticsPreference), null);
+  });
+});
+
+test("las preferencias guardadas conservan prioridad sobre el valor por defecto", () => {
+  withBrowser(({ storage }) => {
+    storage.setItem(analyticsPreference, "denied");
+    assert.equal(analyticsAllowed(), false);
+    storage.setItem(analyticsPreference, "granted");
+    assert.equal(analyticsAllowed(), true);
+    storage.setItem(analyticsPreference, "valor-invalido");
+    assert.equal(analyticsAllowed(), false);
+  });
+});
+
+test("si no se puede leer la preferencia, la analítica permanece desactivada", () => {
+  withBrowser(({ storage }) => {
+    storage.getItem = () => { throw new Error("Almacenamiento no disponible"); };
+    assert.equal(analyticsAllowed(), false);
+  });
+  assert.equal(analyticsAllowed(), false, "No habilitar la analítica en el servidor");
+});
+
+test("los eventos se envían una vez por la API de Google, al destino configurado", () => {
   withBrowser(({ browser, storage, calls }) => {
     storage.setItem(analyticsPreference, "granted");
     sendExternalAnalyticsEvent("add_to_cart", { value: 1000, currency: "COP" });
-    assert.equal(browser.dataLayer.length, 1);
-    assert.equal(calls.length, 0);
-    assert.equal(browser.dataLayer[0].event, "add_to_cart");
-    assert.equal(browser.dataLayer[0].value, 1000);
-    assert.equal(browser.dataLayer[0].page_location, "https://cinemerch.example/catalogo");
-    assert.equal(browser.dataLayer[0].page_referrer, "");
-    assert.equal(JSON.stringify(browser.dataLayer).includes("privado@example.test"), false);
+    assert.equal(browser.dataLayer.length, 0, "No duplicar como evento personalizado GTM");
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][0], "event");
+    assert.equal(calls[0][1], "add_to_cart");
+    assert.equal(calls[0][2].value, 1000);
+    assert.equal(calls[0][2].send_to, GA_MEASUREMENT_ID || undefined);
+    assert.equal(calls[0][2].page_location, "https://cinemerch.example/catalogo");
+    assert.equal(calls[0][2].page_referrer, "");
+    assert.equal(JSON.stringify(calls).includes("privado@example.test"), false);
   });
 });
 
 test("las compras mantienen sus importes y excluyen los cupones individuales", () => {
-  withBrowser(({ browser, storage }) => {
+  withBrowser(({ storage, calls }) => {
     storage.setItem(analyticsPreference, "granted");
     trackPurchase({ transaction_id: "prueba", value: 1000, shipping: 0, tax: 160,
       coupon: "CINEMERCH10-PRIVADO", payment_type: "WOMPI_NEQUI", items: [],
     });
-    assert.equal(browser.dataLayer.length, 1);
-    assert.equal(browser.dataLayer[0].event, "purchase");
-    assert.equal(browser.dataLayer[0].currency, "COP");
-    assert.equal(browser.dataLayer[0].value, 1000);
-    assert.equal(browser.dataLayer[0].coupon, undefined);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0][1], "purchase");
+    assert.equal(calls[0][2].currency, "COP");
+    assert.equal(calls[0][2].value, 1000);
+    assert.equal(calls[0][2].coupon, undefined);
+  });
+});
+
+test("GTM conserva las vistas automáticas sin añadir otra vista manual", () => {
+  withBrowser(({ browser, storage, calls }) => {
+    storage.setItem(analyticsPreference, "granted");
+    sendExternalAnalyticsEvent("page_view");
+    assert.equal(calls.length, 0);
+    assert.equal(browser.dataLayer.length, 0);
   });
 });

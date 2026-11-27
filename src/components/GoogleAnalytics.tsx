@@ -12,6 +12,7 @@ export default function GoogleAnalytics() {
   const lastPath = useRef<string | null>(null);
   const previouslyAllowed = useRef(false);
   const configuredDirectGA = useRef(false);
+  const started = useRef(false);
 
   useEffect(() => {
     function update() {
@@ -23,6 +24,11 @@ export default function GoogleAnalytics() {
       });
       if (GA_MEASUREMENT_ID) Reflect.set(window, "ga-disable-" + GA_MEASUREMENT_ID, !allowed);
       if (allowed) {
+        if (!started.current) {
+          // Apply the analytics preference before initializing the first view.
+          window.gtag?.("js", new Date());
+          started.current = true;
+        }
         if (!GTM_CONTAINER_ID && !configuredDirectGA.current) {
           window.gtag?.("config", GA_MEASUREMENT_ID, {
             send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false,
