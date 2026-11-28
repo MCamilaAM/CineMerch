@@ -111,9 +111,17 @@ model PaymentTransaction {
   updatedAt DateTime @updatedAt
   finalizedAt DateTime?
   events PaymentEvent[]
+  receipt PaymentReceipt?
 
   @@index([orderId])
   @@index([status])
+}
+
+model PaymentReceipt {
+  transactionId String @id
+  transaction PaymentTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  image Bytes
+  createdAt DateTime @default(now())
 }
 
 model PaymentEvent {

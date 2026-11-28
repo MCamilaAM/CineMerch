@@ -38,6 +38,10 @@ Agrega un producto y selecciona Tarjeta, Nequi, PSE, Bancolombia o Bre-B. El com
 
 En `/admin`, aplica el valor local de `ADMIN_ACCESS_TOKEN`. El navegador lo guarda en `sessionStorage`. Las ventas cobradas y el ticket promedio incluyen los pedidos con pago aprobado. La logística permite pasar de pagado a enviado y luego a entregado.
 
+Bre-B requiere adjuntar una imagen JPG o JPEG válida de hasta 5 MB. El comprobante se asocia al intento actual y se guarda en SQLite, dentro del volumen persistente de producción. Se verifica y procesa la imagen sin conservar sus metadatos. No se comprueba su contenido bancario ni se aprueba automáticamente: el administrador puede verla con **Ver comprobante** y después aprobar. Sin comprobante, tanto la API administrativa como el receptor de eventos rechazan la aprobación. Cada nuevo intento requiere su propio comprobante. Un archivo recibido no se reemplaza y su acceso está limitado al comprador de esa orden y al administrador.
+
+La migración `20261128150000_payment_receipts` agrega una tabla sin modificar los datos existentes. En local, detén la aplicación y usa `npm run db:setup -- --app-stopped`; en Railway, `npm start` la aplica durante el arranque. Los comprobantes se incluyen en los respaldos de la base SQLite.
+
 ## API local
 
 | Ruta | Acceso | Comportamiento |
@@ -48,6 +52,8 @@ En `/admin`, aplica el valor local de `ADMIN_ACCESS_TOKEN`. El navegador lo guar
 | `PATCH /api/orders/:id` | Bearer administrativo | Admite `status`, `carrier` y `trackingNumber` para logística de pedidos aprobados. |
 | `GET /api/orders/:id/payment-status` | Bearer del pedido | Devuelve el estado y el último intento, sin datos personales. |
 | `POST /api/orders/:id/payment-attempt` | Bearer del pedido | Devuelve el intento pendiente o crea uno tras rechazo o error. |
+| `POST /api/orders/:id/payment-receipt` | Bearer del pedido | Recibe `receipt` (JPG) y `transactionId` como formulario multipart para un intento Bre-B pendiente. |
+| `GET /api/orders/:id/payment-receipt` | Bearer del pedido o administrativo | Devuelve el JPG del intento actual, sin caché y sin publicarlo en una carpeta pública. |
 | `POST /api/wompi/simulate` | Bearer administrativo | Recibe `transactionId` y `scenario`. Genera y aplica el evento localmente. |
 | `POST /api/wompi/webhook` | Firma local | Verifica y aplica `transaction.updated` en entorno `test`. |
 | `POST /api/products` | Bearer administrativo | Crea productos. |
@@ -68,7 +74,7 @@ Los importes de transacciones se devuelven como cadenas de centavos COP. Para la
 
 ## Verificación
 
-`npm run test:payments` crea una base aislada en `work/`, aplica el esquema, ejecuta las pruebas y elimina su propia carpeta temporal. Pasaron las 15 pruebas, incluida la autorización administrativa: un visitante o comprador con token de pedido no puede resolver pagos ni alterar el inventario, mientras que el administrador sí puede hacerlo y el comprador puede consultar el resultado. La actualización de SQLite generó un respaldo y conservó las filas históricas de pedidos, productos, reseñas y leads. Los nuevos defaults de pedido son `PENDING` y `PENDIENTE`.
+`npm run test:payments` crea una base aislada en `work/`, aplica el esquema, ejecuta las pruebas y elimina su propia carpeta temporal. Pasaron las 17 pruebas, incluida la autorización administrativa y los comprobantes: Bre-B no se aprueba sin un JPG válido, la subida no altera inventario ni aprueba el pago, y cada reintento exige otro comprobante. Un visitante o comprador con token de pedido no puede resolver pagos; sí puede consultar el resultado. Los nuevos defaults de pedido son `PENDING` y `PENDIENTE`.
 
 El flujo móvil a 390 × 844 confirmó que un PSE pendiente se recupera tras recargar, que el reintento mantiene el número de pedido y que la aprobación muestra la proforma y vacía el carrito. La consola no registró errores durante el recorrido.
 

@@ -64,6 +64,21 @@ test("la adopción de una base existente exige confirmación de parada, respalda
   });
 });
 
+test("la migración de comprobantes conserva una base con solo 0_init", async () => {
+  await fixture(async ({ env, file, client }) => {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, "", { flag: "wx" });
+    success(command(["node_modules/prisma/build/index.js", "db", "execute", "--file", "prisma/migrations/0_init/migration.sql", "--schema", "prisma/schema.prisma"], env));
+    success(command(["node_modules/prisma/build/index.js", "migrate", "resolve", "--applied", "0_init"], env));
+    const before = await product(client);
+    success(command(["scripts/deploy-db.mjs"], env));
+    assert.deepEqual(await client.product.findUnique({ where: { id: before.id } }), before);
+    assert.equal(await client.paymentReceipt.count(), 0);
+    success(command(["scripts/deploy-db.mjs"], env));
+    assert.deepEqual(await client.product.findUnique({ where: { id: before.id } }), before);
+  });
+});
+
 test("la línea base rechaza un esquema distinto y no lo marca como migrado", async () => {
   await fixture(async ({ env, file, client }) => {
     success(command(["scripts/deploy-db.mjs"], env));

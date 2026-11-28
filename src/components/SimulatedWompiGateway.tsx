@@ -10,6 +10,7 @@ export interface PaymentAttempt {
   status: string;
   paymentMethod: string;
   createdAt: string;
+  receiptUploadedAt: string | null;
 }
 
 export function PaymentDetails({ transaction }: { transaction: PaymentAttempt }) {
@@ -31,7 +32,7 @@ export default function SimulatedWompiGateway({ transaction }: {
     <section className="space-y-4 rounded-2xl border border-cine-800 bg-cine-950 p-4">
       <h4 className="font-serif text-xl font-black text-amber-300">Wompi</h4>
       <PaymentDetails transaction={transaction} />
-      <p role="status" className="text-sm text-zinc-300">Tu pago está pendiente de confirmación. Puedes consultar su estado aquí o volver más tarde desde el carrito.</p>
+      {transaction.paymentMethod !== "WOMPI_BRE_B" && <p role="status" className="text-sm text-zinc-300">Tu pago está pendiente de confirmación. Puedes consultar su estado aquí o volver más tarde desde el carrito.</p>}
     </section>
   );
 }
