@@ -11,6 +11,7 @@ import { isLocalDelivery, paymentMethods } from "@/lib/checkout-options";
 import SimulatedWompiGateway, { PaymentDetails, type PaymentAttempt } from "./SimulatedWompiGateway";
 import PaymentReceiptUpload from "./PaymentReceiptUpload";
 import { requiresPaymentReceipt } from "@/lib/payment-receipt";
+import CardPaymentFields from "./CardPaymentFields";
 
 const activeKey = "cinemerch_active_payment";
 const checkoutKey = "cinemerch_checkout_key";
@@ -80,6 +81,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
   const pollToken = payment?.paymentAccessToken;
   const pollState = order?.paymentStatus;
   const attemptId = transaction?.id;
+  const retryingCard = order?.paymentMethod === "WOMPI_CARD" && ["DECLINED", "ERROR"].includes(order.paymentStatus);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -93,6 +95,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
       const saved: SavedPayment | null = JSON.parse(localStorage.getItem(activeKey) || "null");
       if (!saved?.order?.id || !saved.paymentAccessToken) throw new Error("No hay un pedido de prueba guardado.");
       setPayment(saved);
+      setMethod(saved.order.paymentMethod);
       setStep(4);
     } catch {
       setError("No hay un pedido de prueba guardado.");
@@ -198,7 +201,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
     });
   }
 
-  function retryPayment() {
+  function createPaymentAttempt() {
     if (!payment || !transaction) return;
     void processAction(async () => {
       const result = await api<{ transaction: PaymentAttempt }>(
@@ -218,6 +221,26 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
       setVerified(true);
       setStep(3);
     });
+  }
+
+  function retryPayment() {
+    if (order?.paymentMethod === "WOMPI_CARD") {
+      setMethod("WOMPI_CARD");
+      setAccepted(false);
+      setError("");
+      setStep(2);
+      return;
+    }
+    createPaymentAttempt();
+  }
+
+  function submitPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busyRef.current || !accepted) return;
+    // Card fields have no names and stay out of React state, storage and API payloads.
+    event.currentTarget.querySelectorAll<HTMLInputElement>("[data-card-field]").forEach((field) => { field.value = ""; });
+    if (retryingCard) createPaymentAttempt();
+    else createOrder();
   }
 
   if (!isOpen) return null;
@@ -269,10 +292,10 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
           )}
 
           {step === 2 && (
-            <section className="space-y-3">
+            <form onSubmit={submitPayment} autoComplete="off" className="space-y-3">
               <h4 className="font-serif text-lg font-bold">Wompi</h4>
               <p className="text-sm text-zinc-400">Los métodos Wompi son demostrativos y funcionan sin conexión bancaria.</p>
-              <fieldset className="grid grid-cols-2 gap-2" disabled={busy}>
+              {retryingCard ? <p className="text-sm font-semibold">Método: Tarjeta</p> : <fieldset className="grid grid-cols-2 gap-2" disabled={busy}>
                 <legend className="mb-2 text-sm font-semibold">Método</legend>
                 {Object.entries(paymentMethods).filter(([id]) => id !== "CONTRAENTREGA" || local).map(([id, label]) => (
                   <label key={id} className="flex gap-2 rounded-xl border border-zinc-700 bg-zinc-900 p-2 text-sm">
@@ -280,17 +303,18 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
                       onChange={() => setMethod(id as keyof typeof paymentMethods)} />{label}
                   </label>
                 ))}
-              </fieldset>
+              </fieldset>}
+              {(method === "WOMPI_CARD" || retryingCard) && <CardPaymentFields disabled={busy} />}
               <p className="text-sm">Total estimado con envío {money(estimatedTotal)}. El servidor confirma el importe antes de simular el pago.</p>
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
                 <span>Autorizo el tratamiento de mis datos para registrar este pedido de prueba conforme a la <Link href="/privacidad" target="_blank" className="underline">política de datos</Link> y acepto las <Link href="/condiciones" target="_blank" className="underline">condiciones de la demo</Link>.</span>
               </label>
               <div className="flex flex-wrap gap-3">
-                <button disabled={busy} onClick={() => setStep(1)} className="px-2 text-sm underline">Volver</button>
-                <button disabled={busy || !accepted} onClick={createOrder} className={button}>{busy ? "Registrando…" : "Registrar pedido"}</button>
+                <button type="button" disabled={busy} onClick={() => setStep(retryingCard ? 4 : 1)} className="px-2 text-sm underline">Volver</button>
+                <button type="submit" disabled={busy || !accepted} className={button}>{busy ? "Registrando…" : retryingCard ? "Enviar nuevo intento" : "Registrar pedido"}</button>
               </div>
-            </section>
+            </form>
           )}
 
           {order && (
