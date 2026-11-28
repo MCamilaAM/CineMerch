@@ -9,6 +9,7 @@ import { useCart } from "@/context/CartContext";
 import { trackPurchase, trackBeginCheckout } from "@/lib/analytics";
 import { isLocalDelivery, paymentMethods } from "@/lib/checkout-options";
 import SimulatedWompiGateway, { PaymentDetails, type PaymentAttempt } from "./SimulatedWompiGateway";
+import PaymentReceiptUpload from "./PaymentReceiptUpload";
 
 const activeKey = "cinemerch_active_payment";
 const checkoutKey = "cinemerch_checkout_key";
@@ -301,6 +302,14 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
             </section>
           )}
 
+          {(step === 3 || step === 4) && verified && payment && transaction?.paymentMethod === "WOMPI_BRE_B" && order?.paymentStatus === "PENDING" && (
+            <PaymentReceiptUpload key={transaction.id} orderId={order.id} token={payment.paymentAccessToken} transaction={transaction}
+              onUploaded={(uploaded) => {
+                setPayment((current) => current?.transaction?.id === uploaded.id ? { ...current, transaction: uploaded } : current);
+                setStep(4);
+                setRefreshVersion((version) => version + 1);
+              }} />
+          )}
           {step === 3 && transaction && <SimulatedWompiGateway transaction={transaction} />}
           {(step === 3 || step === 4) && transaction && order?.paymentStatus === "PENDING" && (
             <button type="button" disabled={busy} className={button} onClick={() => setRefreshVersion((version) => version + 1)}>Consultar estado</button>
@@ -313,7 +322,8 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
                 {!transaction ? "Pedido registrado — pago pendiente a la entrega" :
                   order.paymentStatus === "APPROVED" ? "Pago de prueba aprobado" :
                   order.paymentStatus === "DECLINED" ? "Pago cancelado" :
-                  order.paymentStatus === "ERROR" ? "Error temporal simulado" : "En proceso"}
+                  order.paymentStatus === "ERROR" ? "Error temporal simulado" :
+                  transaction.paymentMethod === "WOMPI_BRE_B" && !transaction.receiptUploadedAt ? "Comprobante requerido" : "En proceso"}
               </h4>
               {transaction && <PaymentDetails transaction={transaction} />}
               {!transaction && <p className="text-sm">{paymentMethods[order.paymentMethod]} · {order.paymentStatus} · {new Date(order.createdAt).toLocaleString("es-CO")}</p>}

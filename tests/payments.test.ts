@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 import { after, before, test } from "node:test";
 import { NextRequest } from "next/server";
 import { POST as create, GET as list } from "../src/app/api/orders/route";
@@ -15,6 +16,8 @@ import { checksum, signSimulation, type PaymentState } from "../src/lib/wompi";
 import { privacyVersion, termsVersion } from "../src/lib/store-policy";
 import { seedAccessories } from "../prisma/seed-accessories";
 import { GET as adminAccess } from "../src/app/api/admin/access/route";
+import { GET as getReceipt, POST as uploadReceipt } from "../src/app/api/orders/[id]/payment-receipt/route";
+import { maxReceiptBytes } from "../src/lib/payment-receipt";
 
 const product = "prod-demo";
 const second = "prod-demo-second";
@@ -54,6 +57,21 @@ async function signed(id: string, state: PaymentState) {
 
 function resolveAttempt(data: { transaction: { id: string }; paymentAccessToken: string }, scenario: PaymentState) {
   return simulate(request("POST", { transactionId: data.transaction.id, scenario }, admin));
+}
+
+async function jpeg() {
+  return sharp({ create: { width: 10, height: 10, channels: 3, background: "#991122" } }).jpeg().toBuffer();
+}
+
+function receiptRequest(data: { transaction: { id: string }; paymentAccessToken: string }, bytes: Uint8Array, options: {
+  name?: string; mime?: string; token?: string; transactionId?: string;
+} = {}) {
+  const form = new FormData();
+  form.append("transactionId", options.transactionId ?? data.transaction.id);
+  form.append("receipt", new File([new Uint8Array(bytes)], options.name ?? "prueba.JPG", { type: options.mime ?? "image/jpeg" }));
+  return new NextRequest("http://localhost/api", {
+    method: "POST", headers: { Authorization: `Bearer ${options.token ?? data.paymentAccessToken}` }, body: form,
+  });
 }
 
 before(async () => {
@@ -283,6 +301,82 @@ test("Solo un administrador puede resolver pagos, incluso con un token de pedido
   assert.equal(response.status, 200);
   assert.equal((await response.json()).paymentStatus, "APPROVED");
   assert.equal(await stock(), initialStock - 1);
+});
+
+test("Bre-B exige comprobante JPG privado antes de aprobar y conserva el archivo tras finalizar", async () => {
+  const data = await checkout({ paymentMethod: "WOMPI_BRE_B" });
+  const ctx = context(data);
+  const initialStock = await stock();
+  assert.equal(data.transaction.receiptUploadedAt, null);
+  assert.equal((await resolveAttempt(data, "APPROVED")).status, 409);
+  assert.equal((await webhook(request("POST", await signed(data.transaction.id, "APPROVED")))).status, 409);
+  assert.equal(await prisma.paymentEvent.count({ where: { transactionId: data.transaction.id } }), 0);
+  assert.equal((await getReceipt(request("GET", undefined, data.paymentAccessToken), ctx)).status, 404);
+  const image = await jpeg();
+  assert.equal((await uploadReceipt(receiptRequest(data, image, { token: "no-autorizado" }), ctx)).status, 404);
+  assert.equal((await uploadReceipt(receiptRequest(data, image, { token: admin }), ctx)).status, 404);
+  const uploaded = await uploadReceipt(receiptRequest(data, image), ctx);
+  assert.equal(uploaded.status, 200, await uploaded.clone().text());
+  const result = await uploaded.json();
+  assert.ok(result.transaction.receiptUploadedAt);
+  assert.equal(result.transaction.status, "PENDING");
+  assert.equal(await stock(), initialStock);
+  const order = await prisma.order.findUniqueOrThrow({ where: { id: data.order.id } });
+  assert.equal(order.paymentStatus, "PENDING");
+  assert.equal(order.paidAt, null);
+  const polled = await (await status(request("GET", undefined, data.paymentAccessToken), ctx)).json();
+  assert.equal(polled.transaction.receiptUploadedAt, result.transaction.receiptUploadedAt);
+  assert.equal(polled.transaction.image, undefined);
+  const other = await checkout();
+  for (const token of [undefined, "no-autorizado", other.paymentAccessToken]) {
+    assert.equal((await getReceipt(request("GET", undefined, token), ctx)).status, 404);
+  }
+  for (const token of [data.paymentAccessToken, admin]) {
+    const response = await getReceipt(request("GET", undefined, token), ctx);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("Content-Type"), "image/jpeg");
+    assert.equal(response.headers.get("Cache-Control"), "private, no-store");
+    assert.equal((await sharp(Buffer.from(await response.arrayBuffer())).metadata()).format, "jpeg");
+  }
+  const listPayload = await (await list(request("GET", undefined, admin))).json();
+  assert.ok(listPayload.orders.find((o: { id: string }) => o.id === data.order.id).transaction.receiptUploadedAt);
+  const firstImage = await prisma.paymentReceipt.findUniqueOrThrow({ where: { transactionId: data.transaction.id } });
+  assert.equal((await uploadReceipt(receiptRequest(data, image), ctx)).status, 200);
+  assert.deepEqual(await prisma.paymentReceipt.findUniqueOrThrow({ where: { transactionId: data.transaction.id } }), firstImage);
+  assert.equal((await resolveAttempt(data, "APPROVED")).status, 200);
+  assert.equal(await stock(), initialStock - 1);
+  assert.equal((await uploadReceipt(receiptRequest(data, image), ctx)).status, 409);
+  assert.equal((await getReceipt(request("GET", undefined, admin), ctx)).status, 200);
+});
+
+test("Comprobantes rechazan formatos falsos, archivos grandes, otros métodos e intentos anteriores", async () => {
+  const data = await checkout({ paymentMethod: "WOMPI_BRE_B" });
+  const ctx = context(data);
+  const image = await jpeg();
+  for (const [bytes, options, expected] of [
+    [image, { name: "archivo.png" }, 400],
+    [image, { mime: "image/png" }, 400],
+    [Buffer.from("esto no es una imagen"), {}, 400],
+    [await sharp(image).png().toBuffer(), {}, 400],
+    [Buffer.alloc(0), {}, 413],
+    [Buffer.alloc(maxReceiptBytes + 1), {}, 413],
+    [image, { transactionId: "otro-intento" }, 409],
+  ] as const) {
+    assert.equal((await uploadReceipt(receiptRequest(data, bytes, options), ctx)).status, expected);
+  }
+  assert.equal(await prisma.paymentReceipt.count({ where: { transactionId: data.transaction.id } }), 0);
+  assert.equal((await resolveAttempt(data, "APPROVED")).status, 409);
+  const otherMethod = await checkout();
+  assert.equal((await uploadReceipt(receiptRequest(otherMethod, image), context(otherMethod))).status, 409);
+  assert.equal((await uploadReceipt(receiptRequest(data, image), ctx)).status, 200);
+  assert.equal((await resolveAttempt(data, "DECLINED")).status, 200);
+  const retried = await (await retry(request("POST", undefined, data.paymentAccessToken), ctx)).json();
+  const current = { ...data, transaction: retried.transaction };
+  assert.equal(retried.transaction.receiptUploadedAt, null);
+  assert.equal((await resolveAttempt(current, "APPROVED")).status, 409);
+  assert.equal((await uploadReceipt(receiptRequest(data, image), ctx)).status, 409);
+  assert.equal((await uploadReceipt(receiptRequest(current, image), ctx)).status, 200);
+  assert.equal((await resolveAttempt(current, "APPROVED")).status, 200);
 });
 
 test("10. Modo desactivado y secreto ausente fallan de forma cerrada", async () => {

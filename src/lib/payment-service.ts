@@ -4,16 +4,17 @@ import { prisma } from "./prisma";
 import { PaymentError } from "./payment-http";
 import { verifyEvent } from "./wompi";
 
-export const latestAttempt = { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1 } satisfies Prisma.PaymentTransactionFindManyArgs;
+const receiptMetadata = { select: { createdAt: true } } as const;
+export const latestAttempt = { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1, include: { receipt: receiptMetadata } } satisfies Prisma.PaymentTransactionFindManyArgs;
 
 export function publicOrder({ checkoutIdempotencyKey, paymentAccessToken, ...order }: Order) {
   return order;
 }
 
-export function serializeTransaction(transaction?: PaymentTransaction | null) {
+export function serializeTransaction(transaction?: (PaymentTransaction & { receipt?: { createdAt: Date } | null }) | null) {
   if (!transaction) return null;
   const { id, reference, amountInCents, currency, status, paymentMethod, createdAt } = transaction;
-  return { id, reference, amountInCents: amountInCents.toString(), currency, status, paymentMethod, createdAt };
+  return { id, reference, amountInCents: amountInCents.toString(), currency, status, paymentMethod, createdAt, receiptUploadedAt: transaction.receipt?.createdAt ?? null };
 }
 
 export function newAttempt(order: Pick<Order, "orderNumber" | "paymentMethod" | "total">) {
@@ -41,7 +42,7 @@ export async function applyPaymentEvent(input: unknown, header: string | null = 
   return writePayment(async (db) => {
     const attempt = await db.paymentTransaction.findUnique({
       where: { id: event.id },
-      include: { order: { include: { transactions: latestAttempt } } },
+      include: { receipt: receiptMetadata, order: { include: { transactions: latestAttempt } } },
     });
     if (!attempt || attempt.provider !== "WOMPI_SIMULATED") throw new PaymentError(404, "Intento no encontrado");
     const { order } = attempt;
@@ -59,6 +60,9 @@ export async function applyPaymentEvent(input: unknown, header: string | null = 
 
     let updated = attempt;
     if (attempt.status === "PENDING" && event.status !== "PENDING") {
+      if (event.status === "APPROVED" && attempt.paymentMethod === "WOMPI_BRE_B" && !attempt.receipt) {
+        throw new PaymentError(409, "Debes recibir un comprobante JPG antes de aprobar el pago por Bre-B.");
+      }
       const finalizedAt = new Date();
       const changed = await db.paymentTransaction.updateMany({
         where: { id: attempt.id, status: "PENDING" },
