@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { adminTokenChangedEvent, adminTokenKey } from "@/lib/admin-access";
 import AdminPaymentActions from "@/components/AdminPaymentActions";
 import AdminPaymentReceipt from "@/components/AdminPaymentReceipt";
+import { requiresPaymentReceipt } from "@/lib/payment-receipt";
 import {
   TrendingUp,
   Package,
@@ -449,7 +450,7 @@ export default function AdminPage() {
                             {ord.transaction?.receiptUploadedAt && <AdminPaymentReceipt key={ord.transaction.id} orderId={ord.id} token={token} />}
                             {ord.transaction?.status === "PENDING" && ord.paymentStatus === "PENDING" && (
                               <AdminPaymentActions transactionId={ord.transaction.id} token={token}
-                                approvalBlocked={ord.paymentMethod === "WOMPI_BRE_B" && !ord.transaction.receiptUploadedAt} onUpdated={() => fetchData(token)} />
+                                approvalBlocked={requiresPaymentReceipt(ord.paymentMethod) && !ord.transaction.receiptUploadedAt} onUpdated={() => fetchData(token)} />
                             )}
                           </td>
                           <td className="p-4 font-mono font-bold text-white">

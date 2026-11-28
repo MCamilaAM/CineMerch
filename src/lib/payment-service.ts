@@ -3,6 +3,7 @@ import { Prisma, type Order, type PaymentTransaction } from "@prisma/client";
 import { prisma } from "./prisma";
 import { PaymentError } from "./payment-http";
 import { verifyEvent } from "./wompi";
+import { requiresPaymentReceipt } from "./payment-receipt";
 
 const receiptMetadata = { select: { createdAt: true } } as const;
 export const latestAttempt = { orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 1, include: { receipt: receiptMetadata } } satisfies Prisma.PaymentTransactionFindManyArgs;
@@ -60,8 +61,8 @@ export async function applyPaymentEvent(input: unknown, header: string | null = 
 
     let updated = attempt;
     if (attempt.status === "PENDING" && event.status !== "PENDING") {
-      if (event.status === "APPROVED" && attempt.paymentMethod === "WOMPI_BRE_B" && !attempt.receipt) {
-        throw new PaymentError(409, "Debes recibir un comprobante JPG antes de aprobar el pago por Bre-B.");
+      if (event.status === "APPROVED" && requiresPaymentReceipt(attempt.paymentMethod) && !attempt.receipt) {
+        throw new PaymentError(409, "Debes recibir un comprobante JPG antes de aprobar el pago.");
       }
       const finalizedAt = new Date();
       const changed = await db.paymentTransaction.updateMany({

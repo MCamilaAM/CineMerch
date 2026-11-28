@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { isReceiptFilename, maxReceiptBytes } from "@/lib/payment-receipt";
+import { paymentMethods } from "@/lib/checkout-options";
 import type { PaymentAttempt } from "./SimulatedWompiGateway";
 
 export default function PaymentReceiptUpload({ orderId, token, transaction, onUploaded }: {
@@ -14,6 +15,7 @@ export default function PaymentReceiptUpload({ orderId, token, transaction, onUp
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const inFlight = useRef(false);
+  const methodLabel = paymentMethods[transaction.paymentMethod as keyof typeof paymentMethods];
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,13 +51,13 @@ export default function PaymentReceiptUpload({ orderId, token, transaction, onUp
 
   if (transaction.receiptUploadedAt) return (
     <p role="status" className="rounded-xl border border-emerald-800 bg-emerald-950 p-3 text-sm text-emerald-200">
-      Comprobante recibido. Tu pago por Bre-B está pendiente de revisión por el administrador.
+      Comprobante recibido. Tu pago por {methodLabel} está pendiente de revisión por el administrador.
     </p>
   );
 
   return (
     <form onSubmit={submit} aria-busy={busy} className="space-y-3 rounded-xl border border-amber-700 bg-cine-950 p-4">
-      <h4 className="font-serif text-lg font-bold text-amber-300">Comprobante de pago Bre-B</h4>
+      <h4 className="font-serif text-lg font-bold text-amber-300">Comprobante de pago {methodLabel}</h4>
       <p id="receipt-help" className="text-sm text-zinc-300">Sube una imagen JPG para enviar tu pago a revisión. Este paso es obligatorio.</p>
       <label className="grid gap-2 text-sm">Comprobante JPG
         <input type="file" accept=".jpg,.jpeg,image/jpeg" required disabled={busy}

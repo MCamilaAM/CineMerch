@@ -53,7 +53,7 @@ export default function AdminPaymentActions({ transactionId, token, approvalBloc
           </button>
         ))}
       </div>
-      {approvalBlocked && <p className="max-w-56 text-xs text-amber-200">Falta el comprobante JPG para aprobar el pago por Bre-B.</p>}
+      {approvalBlocked && <p className="max-w-56 text-xs text-amber-200">Falta el comprobante JPG para aprobar este pago.</p>}
       {busy && <p role="status" className="text-xs text-zinc-300">Actualizando pago…</p>}
       {error && <p role="alert" className="max-w-56 text-xs text-rose-300">{error}</p>}
     </div>

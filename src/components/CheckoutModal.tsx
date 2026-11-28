@@ -10,6 +10,7 @@ import { trackPurchase, trackBeginCheckout } from "@/lib/analytics";
 import { isLocalDelivery, paymentMethods } from "@/lib/checkout-options";
 import SimulatedWompiGateway, { PaymentDetails, type PaymentAttempt } from "./SimulatedWompiGateway";
 import PaymentReceiptUpload from "./PaymentReceiptUpload";
+import { requiresPaymentReceipt } from "@/lib/payment-receipt";
 
 const activeKey = "cinemerch_active_payment";
 const checkoutKey = "cinemerch_checkout_key";
@@ -302,7 +303,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
             </section>
           )}
 
-          {(step === 3 || step === 4) && verified && payment && transaction?.paymentMethod === "WOMPI_BRE_B" && order?.paymentStatus === "PENDING" && (
+          {(step === 3 || step === 4) && verified && payment && transaction && requiresPaymentReceipt(transaction.paymentMethod) && order?.paymentStatus === "PENDING" && (
             <PaymentReceiptUpload key={transaction.id} orderId={order.id} token={payment.paymentAccessToken} transaction={transaction}
               onUploaded={(uploaded) => {
                 setPayment((current) => current?.transaction?.id === uploaded.id ? { ...current, transaction: uploaded } : current);
@@ -323,7 +324,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
                   order.paymentStatus === "APPROVED" ? "Pago de prueba aprobado" :
                   order.paymentStatus === "DECLINED" ? "Pago cancelado" :
                   order.paymentStatus === "ERROR" ? "Error temporal simulado" :
-                  transaction.paymentMethod === "WOMPI_BRE_B" && !transaction.receiptUploadedAt ? "Comprobante requerido" : "En proceso"}
+                  requiresPaymentReceipt(transaction.paymentMethod) && !transaction.receiptUploadedAt ? "Comprobante requerido" : "En proceso"}
               </h4>
               {transaction && <PaymentDetails transaction={transaction} />}
               {!transaction && <p className="text-sm">{paymentMethods[order.paymentMethod]} · {order.paymentStatus} · {new Date(order.createdAt).toLocaleString("es-CO")}</p>}

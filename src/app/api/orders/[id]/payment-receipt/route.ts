@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { failure, hasAdminAccess, PaymentError, requireOrderAccess } from "@/lib/payment-http";
 import { latestAttempt, serializeTransaction, writePayment } from "@/lib/payment-service";
-import { isReceiptFilename, maxReceiptBytes } from "@/lib/payment-receipt";
+import { isReceiptFilename, maxReceiptBytes, requiresPaymentReceipt } from "@/lib/payment-receipt";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest, { params }: Context) {
     const order = await prisma.order.findUnique({ where: { id }, include: { transactions: latestAttempt } });
     requireOrderAccess(request, order?.paymentAccessToken);
     const attempt = order!.transactions[0];
-    if (attempt?.paymentMethod !== "WOMPI_BRE_B" || attempt.status !== "PENDING") {
-      throw new PaymentError(409, "Solo puedes adjuntar un comprobante a un pago pendiente por Bre-B.");
+    if (!attempt || !requiresPaymentReceipt(attempt.paymentMethod) || attempt.status !== "PENDING") {
+      throw new PaymentError(409, "Solo puedes adjuntar un comprobante a un pago pendiente por Bre-B, PSE, Bancolombia o Nequi.");
     }
     if (Number(request.headers.get("content-length")) > maxReceiptBytes + 65536) {
       throw new PaymentError(413, "El comprobante debe pesar como máximo 5 MB.");

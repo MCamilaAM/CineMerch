@@ -1,6 +1,7 @@
 "use client";
 
 import { paymentMethods } from "@/lib/checkout-options";
+import { requiresPaymentReceipt } from "@/lib/payment-receipt";
 
 export interface PaymentAttempt {
   id: string;
@@ -32,7 +33,7 @@ export default function SimulatedWompiGateway({ transaction }: {
     <section className="space-y-4 rounded-2xl border border-cine-800 bg-cine-950 p-4">
       <h4 className="font-serif text-xl font-black text-amber-300">Wompi</h4>
       <PaymentDetails transaction={transaction} />
-      {transaction.paymentMethod !== "WOMPI_BRE_B" && <p role="status" className="text-sm text-zinc-300">Tu pago está pendiente de confirmación. Puedes consultar su estado aquí o volver más tarde desde el carrito.</p>}
+      {!requiresPaymentReceipt(transaction.paymentMethod) && <p role="status" className="text-sm text-zinc-300">Tu pago está pendiente de confirmación. Puedes consultar su estado aquí o volver más tarde desde el carrito.</p>}
     </section>
   );
 }
