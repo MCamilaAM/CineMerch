@@ -40,6 +40,8 @@ En `/admin`, aplica el valor local de `ADMIN_ACCESS_TOKEN`. El navegador lo guar
 
 Bre-B, PSE, Bancolombia y Nequi requieren adjuntar una imagen JPG o JPEG válida de hasta 5 MB. El comprobante se asocia al intento actual y se guarda en SQLite, dentro del volumen persistente de producción. Se verifica y procesa la imagen sin conservar sus metadatos. No se comprueba su contenido bancario ni se aprueba automáticamente: el administrador puede verla con **Ver comprobante** y después aprobar. Sin comprobante, tanto la API administrativa como el receptor de eventos rechazan la aprobación. Cada nuevo intento requiere su propio comprobante. Un archivo recibido no se reemplaza y su acceso está limitado al comprador de esa orden y al administrador.
 
+Tarjeta muestra un formulario obligatorio de titular, número (13 a 19 dígitos), CVV (3 o 4 dígitos ocultos) y vencimiento (MM/AA). Usa datos ficticios: solo se comprueba el formato, sin Luhn, validación de vigencia ni conexión bancaria. Los campos no tienen `name`, permanecen únicamente en el formulario y se vacían al continuar; no se incluyen en solicitudes, analítica, almacenamiento del navegador ni SQLite. Cambiar de método, volver o cerrar desmonta los campos y descarta su contenido. Cada reintento pide los datos de nuevo, conserva el pedido y deja la aprobación en manos del administrador.
+
 La migración `20261128150000_payment_receipts` agrega una tabla sin modificar los datos existentes. En local, detén la aplicación y usa `npm run db:setup -- --app-stopped`; en Railway, `npm start` la aplica durante el arranque. Los comprobantes se incluyen en los respaldos de la base SQLite.
 
 ## API local
