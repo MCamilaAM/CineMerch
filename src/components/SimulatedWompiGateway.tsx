@@ -12,12 +12,6 @@ export interface PaymentAttempt {
   createdAt: string;
 }
 
-const scenarios = {
-  APPROVED: "Aprobar",
-  DECLINED: "Cancelar",
-  PENDING: "Dejar pendiente",
-};
-
 export function PaymentDetails({ transaction }: { transaction: PaymentAttempt }) {
   return (
     <dl className="grid gap-1 text-sm break-words">
@@ -30,23 +24,14 @@ export function PaymentDetails({ transaction }: { transaction: PaymentAttempt })
   );
 }
 
-export default function SimulatedWompiGateway({ transaction, busy, onScenario }: {
+export default function SimulatedWompiGateway({ transaction }: {
   transaction: PaymentAttempt;
-  busy: boolean;
-  onScenario: (scenario: keyof typeof scenarios) => void;
 }) {
   return (
     <section className="space-y-4 rounded-2xl border border-cine-800 bg-cine-950 p-4">
       <h4 className="font-serif text-xl font-black text-amber-300">Wompi</h4>
       <PaymentDetails transaction={transaction} />
-      <div className="grid grid-cols-2 gap-2">
-        {(Object.keys(scenarios) as (keyof typeof scenarios)[]).map((scenario) => (
-          <button key={scenario} type="button" disabled={busy} onClick={() => onScenario(scenario)}
-            className="rounded-xl bg-amber-400 px-3 py-2 text-sm font-bold text-cine-950 disabled:opacity-50">
-            {scenarios[scenario]}
-          </button>
-        ))}
-      </div>
+      <p role="status" className="text-sm text-zinc-300">Tu pago está pendiente de confirmación. Puedes consultar su estado aquí o volver más tarde desde el carrito.</p>
     </section>
   );
 }

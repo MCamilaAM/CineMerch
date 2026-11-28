@@ -34,7 +34,7 @@ Consulta [la configuración de producción y SQLite persistente](docs/produccion
 
 ### Probar el checkout
 
-Agrega un producto y selecciona Tarjeta, Nequi, PSE, Bancolombia o Bre-B. La pasarela permite aprobar, rechazar, dejar pendiente y simular un error. Después de un rechazo o error, puedes crear un nuevo intento sobre el mismo pedido. Tras recargar, abre el carrito y selecciona **Consultar último pedido de prueba guardado**. Un pago aprobado muestra una proforma imprimible. La contraentrega solo está disponible en Cartagena, Bolívar y queda pendiente.
+Agrega un producto y selecciona Tarjeta, Nequi, PSE, Bancolombia o Bre-B. El comprador solo consulta el estado del pago; los controles **Aprobar**, **Cancelar** y **Dejar pendiente** están únicamente en `/admin`, en **Órdenes de Compra**, para intentos pendientes. La API exige el token administrativo para resolverlos y rechaza el token del pedido. Después de una cancelación o error, el comprador puede crear un nuevo intento sobre el mismo pedido. Tras recargar, abre el carrito y selecciona **Consultar último pedido de prueba guardado**. Un pago aprobado muestra una proforma imprimible. La contraentrega solo está disponible en Cartagena, Bolívar y queda pendiente.
 
 En `/admin`, aplica el valor local de `ADMIN_ACCESS_TOKEN`. El navegador lo guarda en `sessionStorage`. Las ventas cobradas y el ticket promedio incluyen los pedidos con pago aprobado. La logística permite pasar de pagado a enviado y luego a entregado.
 
@@ -48,7 +48,7 @@ En `/admin`, aplica el valor local de `ADMIN_ACCESS_TOKEN`. El navegador lo guar
 | `PATCH /api/orders/:id` | Bearer administrativo | Admite `status`, `carrier` y `trackingNumber` para logística de pedidos aprobados. |
 | `GET /api/orders/:id/payment-status` | Bearer del pedido | Devuelve el estado y el último intento, sin datos personales. |
 | `POST /api/orders/:id/payment-attempt` | Bearer del pedido | Devuelve el intento pendiente o crea uno tras rechazo o error. |
-| `POST /api/wompi/simulate` | Bearer del pedido | Recibe `transactionId` y `scenario`. Genera y aplica el evento localmente. |
+| `POST /api/wompi/simulate` | Bearer administrativo | Recibe `transactionId` y `scenario`. Genera y aplica el evento localmente. |
 | `POST /api/wompi/webhook` | Firma local | Verifica y aplica `transaction.updated` en entorno `test`. |
 | `POST /api/products` | Bearer administrativo | Crea productos. |
 | `GET /api/waitlist` | Público, bearer administrativo para datos personales | Publica cantidades y cupos. La lista de leads requiere el token. |
@@ -68,7 +68,7 @@ Los importes de transacciones se devuelven como cadenas de centavos COP. Para la
 
 ## Verificación
 
-`npm run test:payments` crea una base aislada en `work/`, aplica el esquema, ejecuta las pruebas y elimina su propia carpeta temporal. En Windows pasaron los 13 grupos, incluido el registro de autorización. La actualización de SQLite generó un respaldo y conservó las filas históricas de pedidos, productos, reseñas y leads. Los nuevos defaults de pedido son `PENDING` y `PENDIENTE`.
+`npm run test:payments` crea una base aislada en `work/`, aplica el esquema, ejecuta las pruebas y elimina su propia carpeta temporal. Pasaron las 15 pruebas, incluida la autorización administrativa: un visitante o comprador con token de pedido no puede resolver pagos ni alterar el inventario, mientras que el administrador sí puede hacerlo y el comprador puede consultar el resultado. La actualización de SQLite generó un respaldo y conservó las filas históricas de pedidos, productos, reseñas y leads. Los nuevos defaults de pedido son `PENDING` y `PENDIENTE`.
 
 El flujo móvil a 390 × 844 confirmó que un PSE pendiente se recupera tras recargar, que el reintento mantiene el número de pedido y que la aprobación muestra la proforma y vacía el carrito. La consola no registró errores durante el recorrido.
 

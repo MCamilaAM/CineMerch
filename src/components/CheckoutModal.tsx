@@ -66,6 +66,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const busyRef = useRef(false);
   const poll = useRef<AbortController | null>(null);
   const department = cities[delivery.city as keyof typeof cities];
@@ -126,7 +127,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [isOpen, pollId, pollToken, pollState, attemptId, busy]);
+  }, [isOpen, pollId, pollToken, pollState, attemptId, busy, refreshVersion]);
 
   useEffect(() => {
     if (!payment) return;
@@ -195,15 +196,14 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
     });
   }
 
-  function updateAttempt(scenario?: string) {
+  function retryPayment() {
     if (!payment || !transaction) return;
     void processAction(async () => {
       const result = await api<{ transaction: PaymentAttempt }>(
-        scenario ? "/api/wompi/simulate" : `/api/orders/${payment.order.id}/payment-attempt`,
+        `/api/orders/${payment.order.id}/payment-attempt`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${payment.paymentAccessToken}` },
-          body: scenario ? JSON.stringify({ transactionId: transaction.id, scenario }) : undefined,
         },
       );
       const status = result.transaction.status;
@@ -214,7 +214,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
       savePayment(updated);
       setPayment(updated);
       setVerified(true);
-      setStep(scenario ? 4 : 3);
+      setStep(3);
     });
   }
 
@@ -301,7 +301,10 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
             </section>
           )}
 
-          {step === 3 && transaction && <SimulatedWompiGateway transaction={transaction} busy={busy} onScenario={updateAttempt} />}
+          {step === 3 && transaction && <SimulatedWompiGateway transaction={transaction} />}
+          {(step === 3 || step === 4) && transaction && order?.paymentStatus === "PENDING" && (
+            <button type="button" disabled={busy} className={button} onClick={() => setRefreshVersion((version) => version + 1)}>Consultar estado</button>
+          )}
 
           {step === 4 && order && !verified && !error && <p role="status">Consultando estado del pedido…</p>}
           {step === 4 && order && verified && (
@@ -309,7 +312,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
               <h4 className="font-serif text-xl font-bold text-amber-300" aria-live="polite">
                 {!transaction ? "Pedido registrado — pago pendiente a la entrega" :
                   order.paymentStatus === "APPROVED" ? "Pago de prueba aprobado" :
-                  order.paymentStatus === "DECLINED" ? "Fondos insuficientes simulados" :
+                  order.paymentStatus === "DECLINED" ? "Pago cancelado" :
                   order.paymentStatus === "ERROR" ? "Error temporal simulado" : "En proceso"}
               </h4>
               {transaction && <PaymentDetails transaction={transaction} />}
@@ -330,7 +333,7 @@ export default function CheckoutModal({ isOpen, recover, onClose }: {
               {transaction && order.paymentStatus === "PENDING" &&
                 <button disabled={busy} className={button} onClick={() => setStep(3)}>Volver a la pasarela</button>}
               {["DECLINED", "ERROR"].includes(order.paymentStatus) &&
-                <button disabled={busy} className={button} onClick={() => updateAttempt()}>Nuevo intento</button>}
+                <button disabled={busy} className={button} onClick={retryPayment}>Nuevo intento</button>}
             </section>
           )}
         </div>

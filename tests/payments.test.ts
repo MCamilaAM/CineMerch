@@ -53,7 +53,7 @@ async function signed(id: string, state: PaymentState) {
 }
 
 function resolveAttempt(data: { transaction: { id: string }; paymentAccessToken: string }, scenario: PaymentState) {
-  return simulate(request("POST", { transactionId: data.transaction.id, scenario }, data.paymentAccessToken));
+  return simulate(request("POST", { transactionId: data.transaction.id, scenario }, admin));
 }
 
 before(async () => {
@@ -231,7 +231,7 @@ test("9. Autorización de consulta, simulación, logística, catálogo y leads",
   const data = await checkout();
   const ctx = context(data);
   assert.equal((await status(request("GET"), ctx)).status, 404);
-  assert.equal((await simulate(request("POST", { transactionId: data.transaction.id, scenario: "APPROVED" }))).status, 404);
+  assert.equal((await simulate(request("POST", { transactionId: data.transaction.id, scenario: "APPROVED" }))).status, 401);
   assert.equal((await patch(request("PATCH", { status: "ENVIADO" }), ctx)).status, 401);
   assert.equal((await patch(request("PATCH", { status: "PAGADO" }, admin), ctx)).status, 409);
   assert.equal((await patch(request("PATCH", { paymentStatus: "APPROVED" }, admin), ctx)).status, 400);
@@ -249,6 +249,40 @@ test("9. Autorización de consulta, simulación, logística, catálogo y leads",
   assert.equal((await patch(request("PATCH", { status: "ENTREGADO" }, admin), ctx)).status, 409);
   assert.equal((await patch(request("PATCH", { status: "ENVIADO", trackingNumber: "DEMO" }, admin), ctx)).status, 200);
   assert.equal((await patch(request("PATCH", { status: "ENTREGADO" }, admin), ctx)).status, 200);
+});
+
+test("Solo un administrador puede resolver pagos, incluso con un token de pedido válido", async () => {
+  const data = await checkout();
+  const initialStock = await stock();
+  const initialOrder = await prisma.order.findUniqueOrThrow({ where: { id: data.order.id } });
+  for (const scenario of ["APPROVED", "DECLINED", "PENDING", "ERROR"]) {
+    for (const token of [undefined, "token-invalido", data.paymentAccessToken]) {
+      const response = await simulate(request("POST", { transactionId: data.transaction.id, scenario }, token));
+      assert.equal(response.status, 401);
+    }
+  }
+  assert.equal((await simulate(request("POST", { transactionId: "no-existe", scenario: "APPROVED" }, data.paymentAccessToken))).status, 401);
+  assert.deepEqual(await prisma.order.findUniqueOrThrow({ where: { id: data.order.id } }), initialOrder);
+  assert.equal((await prisma.paymentTransaction.findUniqueOrThrow({ where: { id: data.transaction.id } })).status, "PENDING");
+  assert.equal(await prisma.paymentEvent.count({ where: { transactionId: data.transaction.id } }), 0);
+  assert.equal(await stock(), initialStock);
+
+  const original = process.env.ADMIN_ACCESS_TOKEN;
+  try {
+    delete process.env.ADMIN_ACCESS_TOKEN;
+    assert.equal((await resolveAttempt(data, "APPROVED")).status, 401);
+    process.env.ADMIN_ACCESS_TOKEN = "reemplazar-con-secreto-de-al-menos-32-caracteres";
+    assert.equal((await simulate(request("POST", { transactionId: data.transaction.id, scenario: "APPROVED" }, process.env.ADMIN_ACCESS_TOKEN))).status, 401);
+  } finally {
+    process.env.ADMIN_ACCESS_TOKEN = original;
+  }
+
+  assert.equal((await resolveAttempt(data, "PENDING")).status, 200);
+  assert.equal((await resolveAttempt(data, "APPROVED")).status, 200);
+  const response = await status(request("GET", undefined, data.paymentAccessToken), context(data));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).paymentStatus, "APPROVED");
+  assert.equal(await stock(), initialStock - 1);
 });
 
 test("10. Modo desactivado y secreto ausente fallan de forma cerrada", async () => {

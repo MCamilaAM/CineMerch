@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { adminTokenChangedEvent, adminTokenKey } from "@/lib/admin-access";
+import AdminPaymentActions from "@/components/AdminPaymentActions";
 import {
   TrendingUp,
   Package,
@@ -444,6 +445,9 @@ export default function AdminPage() {
                             <div>{ord.paymentStatus}</div>
                             <div className="max-w-48 break-all text-[10px] text-zinc-400">{ord.transaction?.reference || "Sin referencia"}</div>
                             {ord.transaction && <time className="text-[10px] text-zinc-400">{new Date(ord.transaction.createdAt).toLocaleString("es-CO")}</time>}
+                            {ord.transaction?.status === "PENDING" && ord.paymentStatus === "PENDING" && (
+                              <AdminPaymentActions transactionId={ord.transaction.id} token={token} onUpdated={() => fetchData(token)} />
+                            )}
                           </td>
                           <td className="p-4 font-mono font-bold text-white">
                             ${ord.total.toLocaleString("es-CO")}
