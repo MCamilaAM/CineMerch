@@ -18,6 +18,7 @@ import { seedAccessories } from "../prisma/seed-accessories";
 import { GET as adminAccess } from "../src/app/api/admin/access/route";
 import { GET as getReceipt, POST as uploadReceipt } from "../src/app/api/orders/[id]/payment-receipt/route";
 import { maxReceiptBytes } from "../src/lib/payment-receipt";
+import { paymentMethods } from "../src/lib/checkout-options";
 
 const product = "prod-demo";
 const second = "prod-demo-second";
@@ -25,7 +26,7 @@ const admin = process.env.ADMIN_ACCESS_TOKEN;
 const valid = {
   customerName: "Cliente demo", customerEmail: "demo@example.test", customerPhone: "3000000000",
   city: "Cartagena", department: "Bolívar", address: "Dirección de prueba",
-  deliveryMethod: "ENVIO_NACIONAL", paymentMethod: "WOMPI_NEQUI",
+  deliveryMethod: "ENVIO_NACIONAL", paymentMethod: "WOMPI_CARD",
   items: [{ id: product, quantity: 1 }], pointsRedeemed: 0, privacyVersion, termsVersion,
 };
 
@@ -169,6 +170,8 @@ test("3. PSE pendiente, rechazo, error y reintentos", async () => {
   assert.equal((await resolveAttempt({ ...data, transaction: first.transaction }, "ERROR")).status, 200);
   assert.equal(await stock(), initial);
   const third = await (await retry(auth(), context(data))).json();
+  assert.equal((await resolveAttempt({ ...data, transaction: third.transaction }, "APPROVED")).status, 409);
+  assert.equal((await uploadReceipt(receiptRequest({ ...data, transaction: third.transaction }, await jpeg()), context(data))).status, 200);
   assert.equal((await resolveAttempt({ ...data, transaction: third.transaction }, "APPROVED")).status, 200);
   assert.equal((await retry(auth(), context(data))).status, 409);
   assert.equal(await stock(), initial - 1);
@@ -303,8 +306,9 @@ test("Solo un administrador puede resolver pagos, incluso con un token de pedido
   assert.equal(await stock(), initialStock - 1);
 });
 
-test("Bre-B exige comprobante JPG privado antes de aprobar y conserva el archivo tras finalizar", async () => {
-  const data = await checkout({ paymentMethod: "WOMPI_BRE_B" });
+for (const paymentMethod of ["WOMPI_BRE_B", "WOMPI_PSE", "WOMPI_BANCOLOMBIA", "WOMPI_NEQUI"] as const) {
+test(`${paymentMethods[paymentMethod]} exige comprobante JPG privado antes de aprobar y conserva el archivo tras finalizar`, async () => {
+  const data = await checkout({ paymentMethod });
   const ctx = context(data);
   const initialStock = await stock();
   assert.equal(data.transaction.receiptUploadedAt, null);
@@ -348,6 +352,7 @@ test("Bre-B exige comprobante JPG privado antes de aprobar y conserva el archivo
   assert.equal((await uploadReceipt(receiptRequest(data, image), ctx)).status, 409);
   assert.equal((await getReceipt(request("GET", undefined, admin), ctx)).status, 200);
 });
+}
 
 test("Comprobantes rechazan formatos falsos, archivos grandes, otros métodos e intentos anteriores", async () => {
   const data = await checkout({ paymentMethod: "WOMPI_BRE_B" });

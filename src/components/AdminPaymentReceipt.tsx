@@ -39,7 +39,7 @@ export default function AdminPaymentReceipt({ orderId, token }: { orderId: strin
       {open && (preview.url ? (
         // The private image is fetched with authorization and displayed locally.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={preview.url} alt="Comprobante de pago Bre-B" className="h-auto w-56 max-w-full rounded-lg" />
+        <img src={preview.url} alt="Comprobante de pago" className="h-auto w-56 max-w-full rounded-lg" />
       ) : preview.error ? <p role="alert" className="max-w-56 text-xs text-rose-300">{preview.error}</p>
         : <p role="status">Cargando comprobante…</p>)}
     </div>
